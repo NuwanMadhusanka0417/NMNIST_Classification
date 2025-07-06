@@ -65,7 +65,7 @@ full_ev_ds = ev_loader(root="data")
 print("Dataset loaded")
 
 normalized_feat = False
-num_of_graph_events = 50  # None, 10, 50, 100. etc
+num_of_graph_events = 100  # None, 10, 50, 100. etc
 MNISTGraph_model   = NMNISTGraphDataset(tonic_raw_dataset=full_ev_ds, num_of_graph_events=num_of_graph_events, noise_remove=False, normalized_feat=normalized_feat)
 
 
