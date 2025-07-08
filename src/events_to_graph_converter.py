@@ -4,75 +4,104 @@ import torch
 from torch_geometric.data import Data
 from collections import defaultdict
 
+import numpy as np
+import torch
+from scipy.spatial import cKDTree
+from torch_geometric.data import Data
+
 def events_to_st_graph(
         events: np.ndarray,
         *,
         sensor_size=(34, 34),     # (W, H) for normalising features
-        spatial_thr: float = 3.0, # pixel radius
-        time_thr_us: int = 100,   # µs
-        directed: bool = False,    # if True: only t_i < t_j edges
-        normalized_feat:bool = True
+        beta: float = 1e-4,       # time normalization factor
+        R: float = 6.0,           # spatio-temporal radius threshold
+        Dmax: int = 16,           # max neighbors per node
+        directed: bool = True,   # if True: only edges i→j where t_i <= t_j
+        normalized_feat: bool = False
 ) -> Data:
     """
-    Build a graph where nodes = events and edges connect spatio-temporal neighbours.
+    Build a graph where nodes = events and edges connect all neighbours
+    within a 3D radius R in (x, y, beta*t) space, capped to Dmax per node.
 
     Parameters
     ----------
     events        : structured array with fields 'x','y','t' (plus optional 'p')
-    spatial_thr   : max spatial distance in pixels
-    time_thr_us   : max |Δt| in micro-seconds
-    directed      : True → edges i→j only if t_i <  t_j  and Δt <= time_thr_us
-                    False → undirected edges if |Δt| <= time_thr_us
+    sensor_size   : to normalize x,y into [0,1]
+    beta          : scale factor for timestamps
+    R             : max Euclidean distance in (x,y,beta*t) for connectivity
+    Dmax          : maximum number of neighbors per node
+    directed      : if True, only link i→j when t_i <= t_j
+    normalized_feat : whether to normalize features
 
     Returns
     -------
-    torch_geometric.data.Data  with fields
-        x           node features  (N, 3|4)
-        edge_index  (2, E) tensor  (undirected or directed as requested)
+    Data  with fields
+      x           node features  (N,3 or 4)
+      edge_index  (2, E)
     """
-    assert {"x", "y", "t"}.issubset(events.dtype.names), "events must have x, y, t"
+    assert {"x", "y", "t"}.issubset(events.dtype.names)
+    N = len(events)
+    # 1) build 3D coords
+    xs = events["x"].astype(np.float32)
+    ys = events["y"].astype(np.float32)
+    ts = events["t"].astype(np.float32)
+    t_star = beta * ts
+    coords3 = np.stack([xs, ys, t_star], axis=1)
 
-    # ── 1. KD-tree on spatial coords ────────────────────────────────────────────
-    coords = np.stack([events["x"], events["y"]], axis=1).astype(np.float32)
-    tree   = cKDTree(coords)
-    pairs  = np.array(list(tree.query_pairs(r=spatial_thr, output_type="set")),
-                      dtype=np.int64)             # shape (P,2) with i<j
-    if pairs.size == 0:                           # no spatial neighbours
+    tree = cKDTree(coords3)
+    # for each point, find all within R (including itself)
+    neighbors = tree.query_ball_point(coords3, r=R)
+
+    src, dst = [], []
+    for i, nbrs in enumerate(neighbors):
+        # remove self
+        nbrs = [j for j in nbrs if j != i]
+        if not nbrs:
+            continue
+        # compute distances
+        dists = np.linalg.norm(coords3[nbrs] - coords3[i], axis=1)
+        # sort by distance
+        sorted_idx = np.argsort(dists)
+        # keep up to Dmax closest
+        for idx in sorted_idx[:Dmax]:
+            j = nbrs[idx]
+            # directed option
+            if directed and ts[j] < ts[i]:
+                continue
+            src.append(i)
+            dst.append(j)
+            if not directed:
+                src.append(j)
+                dst.append(i)
+
+    if len(src) == 0:
         edge_index = np.empty((2, 0), dtype=np.int64)
     else:
-        ti, tj = events["t"][pairs[:, 0]], events["t"][pairs[:, 1]]
-        dt     = tj - ti
+        edge_index = np.vstack([src, dst])
 
-        if directed:
-            keep = (dt > 0) & (dt <= time_thr_us)
-            edge_index = pairs[keep].T           # i→j forward only
-        else:
-            keep = np.abs(dt) <= time_thr_us
-            undirected = pairs[keep]
-            edge_index = np.concatenate([undirected.T, undirected.T[::-1]], axis=1)
-
-    # ── 2. Node feature matrix  -------------------------------------------------
+    # 2) node features
     if normalized_feat:
         W, H = sensor_size
-        x_n  = events["x"] / W             # x and y doesn't normalize. this will affect on GNN, but need to do this for codebook
-        y_n  = events["y"] / H
-        t_n  = (events["t"] - events["t"].min()) # / max(1, events["t"].ptp())  # 0-1  # time is very importatnt to identify running, walking, jogging etc. so normalization reduce information.
-        p_n = events["p"].astype(np.float32) * 2 - 1          # 0→-1, 1→+1
+        x_n  = xs / W
+        y_n  = ys / H
+        t_n  = ts - ts.min()  # keep raw scale in ms*beta
+        if "p" in events.dtype.names:
+            p_n = events["p"].astype(np.float32) * 2 - 1
+            feats = np.stack([x_n, y_n, t_n, p_n], axis=1)
+        else:
+            feats = np.stack([x_n, y_n, t_n], axis=1)
     else:
-        x_n = events["x"]               # x and y doesn't normalize. this will affect on GNN, but need to do this for codebook
-        y_n = events["y"]
-        t_n = (events["t"] - events["t"].min())   / max(1, events["t"].ptp())  # 0-1  # time is very importatnt to identify running, walking, jogging etc. so normalization reduce information.
-        p_n = events["p"]
-
-    if "p" in events.dtype.names:
-        feats = np.stack([x_n, y_n, t_n, p_n], axis=1)
-    else:
-        feats = np.stack([x_n, y_n, t_n], axis=1)
+        if "p" in events.dtype.names:
+            p_n = events["p"].astype(np.float32)
+            feats = np.stack([xs, ys, ts, p_n], axis=1)
+        else:
+            feats = np.stack([xs, ys, ts], axis=1)
 
     return Data(
         x=torch.tensor(feats, dtype=torch.float32),
         edge_index=torch.tensor(edge_index, dtype=torch.long)
     )
+
 
 # === your updated graph‐building function ===
 def events_to_sota_graph_________________(events, tau=2, fs=None, ft=None):

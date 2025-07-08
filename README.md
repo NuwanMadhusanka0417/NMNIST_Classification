@@ -62,6 +62,21 @@ num_of_graph_events = 50
 ```
 
 normalized_feat parameter should be tru if we use generated graoh in GNN. othervise keep it False.  num_of_graph_events describe, how many events used for graph generation. Because, each sample dta have aroun 5000 events. So processing all events are costly. Therefore, program limit number of events used in graph.
+_____________________________________________________________
+
+During the graph generation, each node connect to another node by considering spatial and temporal distance.
+So, they consider 3D space with x,y,t and use radia R, sphere to make connection between nodes.
+And, when maximum number of connections that node can bear is 16.
+
+* We embed each event at (𝑥 , 𝑦 , 𝛽𝑡) in 3D.
+
+* We link every pair within Euclidean radius R=5.
+
+* We truncate each node’s neighbour list to the 𝐷max=16 closest.
+
+* If directed=True, we only keep edges where 𝑡𝑗≥𝑡𝑖 ; otherwise we mirror them for an undirected graph.
+
+* Node features remain(𝑥,𝑦,𝑡,𝑝), ptionally normalized.
 
 
 ### graph - HV convertion and classification
