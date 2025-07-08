@@ -102,51 +102,7 @@ def events_to_st_graph(
         edge_index=torch.tensor(edge_index, dtype=torch.long)
     )
 
-
-# === your updated graph‐building function ===
-def events_to_sota_graph_________________(events, tau=2, fs=None, ft=None):
-    import numpy as np
-    import torch
-    from torch_geometric.data import Data
-    from collections import defaultdict
-
-    if fs is None:
-        fs = lambda s1, s2: np.hypot(s1[0] - s2[0], s1[1] - s2[1])
-    if ft is None:
-        ft = lambda t2, t1: abs(t2 - t1)
-
-    ev = np.asarray(events, dtype=float)
-    xs, ys, ts, ps = ev[:,0], ev[:,1], ev[:,2], ev[:,3]
-    N = len(ev)
-
-    # Node features [x, y, t, p]
-    x = torch.tensor(ev, dtype=torch.float)
-
-    row, col, edge_attrs = [], [], []
-    # next‐in‐time edges
-    for i in range(1, N):
-        j = i - 1
-        row.append(j); col.append(i)
-        edge_attrs.append([fs((xs[i],ys[i]), (xs[j],ys[j])), ft(ts[i], ts[j])])
-    # same‐pixel edges
-    by_pix = defaultdict(list)
-    for idx, (xi, yi) in enumerate(zip(xs, ys)):
-        by_pix[(int(xi),int(yi))].append(idx)
-    for idxs in by_pix.values():
-        for k, i in enumerate(idxs):
-            for d in range(1, tau+1):
-                if k+d < len(idxs):
-                    j = idxs[k+d]
-                    row.append(i); col.append(j)
-                    edge_attrs.append([0.0, ft(ts[j], ts[i])])
-                else:
-                    break
-
-    edge_index = torch.tensor([row, col], dtype=torch.long)
-    edge_attr  = torch.tensor(edge_attrs, dtype=torch.float)
-    return Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
-
-
+### method that use only next node and same pixel node as neighbours.
 def events_to_sota_graph(
     events: np.ndarray,
     *,

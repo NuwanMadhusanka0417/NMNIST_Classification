@@ -64,7 +64,7 @@ full_ev_ds = ev_loader(root="data")
 print("Dataset loaded")
 
 normalized_feat = False
-num_of_graph_events = None  # None, 10, 50, 100. etc
+num_of_graph_events = 100  # None, 10, 50, 100. etc
 MNISTGraph_model   = NMNISTGraphDataset(tonic_raw_dataset=full_ev_ds, num_of_graph_events=num_of_graph_events, noise_remove=False, normalized_feat=normalized_feat)
 
 
@@ -74,7 +74,7 @@ full_graph_list = [ MNISTGraph_model.get(i) for i in range(len(full_ev_ds)) ]
 
 print("MaKing graphs completed")
 path_to_save = ("data/"+
-                str("normalized_graph" if normalized_feat == True else "unnormalized_graph")+ "/R_mthd_graphs_test_E_" +
+                str("normalized_graph" if normalized_feat == True else "unnormalized_graph")+ "/R_mthd_graphs_test_s6_E_" +
                 (str("all") if num_of_graph_events==None else str(num_of_graph_events))+".pt")
 
 torch.save(full_graph_list, path_to_save)
