@@ -9,7 +9,7 @@ from src.events_to_graph_converter import events_to_st_graph, events_to_sota_gra
 from src.loader import ev_loader
 
 class NMNISTGraphDataset(Dataset):
-    def __init__(self, tonic_raw_dataset,normalized_feat, R, Dmax, num_of_graph_events = None, noise_remove = False, nr_bin_xy_size = 6, nr_time_bin_size = 20_000, nr_minimum_events=10):
+    def __init__(self, tonic_raw_dataset,normalized_feat, R, Dmax, num_of_graph_events = None, noise_remove = False, nr_bin_xy_size = 4, nr_time_bin_size = 20_000, nr_minimum_events=5):
         super().__init__()
         self.base = tonic_raw_dataset               # produces (events, label)
         self.num_of_graph_events = num_of_graph_events          # Number of events in a graph
@@ -70,10 +70,16 @@ NORMALIZE_FEAT = False
 NUM_OF_GRAPH_EVENTS = 100  # None, 10, 50, 100. etc
 R = 4
 D_MAX = 16
-NOICE_REMOVED = False
 
-MNISTGraph_model   = NMNISTGraphDataset(tonic_raw_dataset=full_ev_ds, num_of_graph_events=NUM_OF_GRAPH_EVENTS, R=R, Dmax=D_MAX, noise_remove=NOICE_REMOVED, normalized_feat=NORMALIZE_FEAT)
+NOICE_REMOVED = True
+NR_BIN_XY_SIZE = 10
+NR_TIME_BIN_SIZE = 20_000
+NR_MINIMUM_EVENTS = 5
 
+MNISTGraph_model   = NMNISTGraphDataset(tonic_raw_dataset=full_ev_ds, num_of_graph_events=NUM_OF_GRAPH_EVENTS,
+                                        R=R, Dmax=D_MAX,
+                                        noise_remove=NOICE_REMOVED, normalized_feat=NORMALIZE_FEAT,
+                                        nr_bin_xy_size=NR_BIN_XY_SIZE, nr_minimum_events=NR_MINIMUM_EVENTS, nr_time_bin_size=NR_TIME_BIN_SIZE)
 
 print("Making graphs....")
 full_graph_list = [ MNISTGraph_model.get(i) for i in range(len(full_ev_ds)) ]
@@ -86,3 +92,6 @@ path_to_save = ("data/"+
 
 torch.save(full_graph_list, path_to_save)
 print("Graphs saved to ->", path_to_save)
+print("NUM_OF_GRAPH_EVENTS:", NUM_OF_GRAPH_EVENTS,
+                        " | R:",R," | D_MAX: ",D_MAX," | NOICE_REMOVED: ",NOICE_REMOVED,
+                        " | NR_BIN_XY_SIZE: ",NR_BIN_XY_SIZE ," | NR_TIME_BIN_SIZE: ",NR_TIME_BIN_SIZE," | NR_MINIMUM_EVENTS: ", NR_MINIMUM_EVENTS)

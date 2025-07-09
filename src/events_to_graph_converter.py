@@ -40,7 +40,7 @@ def events_to_st_graph(
       edge_index  (2, E)
     """
 
-    print("LOG - R=",R, " | Dmax=", Dmax)
+    # print("LOG - R=",R, " | Dmax=", Dmax)
     assert {"x", "y", "t"}.issubset(events.dtype.names)
     N = len(events)
     # 1) build 3D coords
