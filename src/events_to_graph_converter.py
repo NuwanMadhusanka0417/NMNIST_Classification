@@ -14,8 +14,8 @@ def events_to_st_graph(
         *,
         sensor_size=(34, 34),     # (W, H) for normalising features
         beta: float = 1e-4,       # time normalization factor
-        R: float = 6.0,           # spatio-temporal radius threshold
-        Dmax: int = 16,           # max neighbors per node
+        R: float = 4.0,           # spatio-temporal radius threshold
+        Dmax: int = 18,           # max neighbors per node
         directed: bool = True,   # if True: only edges i→j where t_i <= t_j
         normalized_feat: bool = False
 ) -> Data:
@@ -39,6 +39,8 @@ def events_to_st_graph(
       x           node features  (N,3 or 4)
       edge_index  (2, E)
     """
+
+    print("LOG - R=",R, " | Dmax=", Dmax)
     assert {"x", "y", "t"}.issubset(events.dtype.names)
     N = len(events)
     # 1) build 3D coords

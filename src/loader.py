@@ -13,7 +13,7 @@ def ev_loader(root:str = 'data'):
 
 def graph_loader(normalized_feat = False, num_of_graph_events = None):
     path_to__load = ("data/" +
-                         str("normalized_graph" if normalized_feat == True else "unnormalized_graph") + "/R_mthd_graphs_test_E_" +
+                         str("normalized_graph" if normalized_feat == True else "unnormalized_graph") + "/R_mthd_graphs_test_s4_E_" +
                          (str("all") if num_of_graph_events == None else str(num_of_graph_events))+".pt")
-
+    print("LOG - loaded graph: ", path_to__load)
     return torch.load(path_to__load)
