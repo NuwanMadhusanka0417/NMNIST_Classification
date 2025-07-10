@@ -62,19 +62,21 @@ class NMNISTGraphDataset(Dataset):
         return g
 
 
-full_ev_ds = ev_loader(root="data")
-
-print("Dataset loaded")
-
+DATASET = "full" # full / test      size of dataset loading for training and testing
 NORMALIZE_FEAT = False
 NUM_OF_GRAPH_EVENTS = 100  # None, 10, 50, 100. etc
 R = 4
 D_MAX = 16
 
 NOICE_REMOVED = True
-NR_BIN_XY_SIZE = 10
+NR_BIN_XY_SIZE = 15
 NR_TIME_BIN_SIZE = 20_000
-NR_MINIMUM_EVENTS = 5
+NR_MINIMUM_EVENTS = 3
+
+full_ev_ds = ev_loader(root="data", dataset=DATASET)
+
+print("Dataset loaded")
+
 
 MNISTGraph_model   = NMNISTGraphDataset(tonic_raw_dataset=full_ev_ds, num_of_graph_events=NUM_OF_GRAPH_EVENTS,
                                         R=R, Dmax=D_MAX,
@@ -87,11 +89,13 @@ full_graph_list = [ MNISTGraph_model.get(i) for i in range(len(full_ev_ds)) ]
 
 print("MaKing graphs completed")
 path_to_save = ("data/"+
-                str("normalized_graph" if NORMALIZE_FEAT == True else "unnormalized_graph")+ "/R_mthd_graphs_test_s4_E_" +
-                (str("all") if NUM_OF_GRAPH_EVENTS==None else str(NUM_OF_GRAPH_EVENTS))+".pt")
+                str("normalized_graph" if NORMALIZE_FEAT == True else "unnormalized_graph")+ "/R_mthd_graphs_"+ DATASET +
+                "_R"+ str(R) + "_Dmax" + str(D_MAX) +
+                "_NR_" + str("t" if NOICE_REMOVED == True else "f") + "_NRxy" + str(NR_BIN_XY_SIZE) + "_NRt" + str(NR_TIME_BIN_SIZE) + "_NRmine" + str(NR_MINIMUM_EVENTS) +
+                "_E_" +(str("all") if NUM_OF_GRAPH_EVENTS==None else str(NUM_OF_GRAPH_EVENTS))+".pt")
 
 torch.save(full_graph_list, path_to_save)
 print("Graphs saved to ->", path_to_save)
-print("NUM_OF_GRAPH_EVENTS:", NUM_OF_GRAPH_EVENTS,
+print("LOG-[Graph generation]: NUM_OF_GRAPH_EVENTS:", NUM_OF_GRAPH_EVENTS," | DATASET:", DATASET, " | NORMALIZE_FEAT:", NORMALIZE_FEAT,
                         " | R:",R," | D_MAX: ",D_MAX," | NOICE_REMOVED: ",NOICE_REMOVED,
                         " | NR_BIN_XY_SIZE: ",NR_BIN_XY_SIZE ," | NR_TIME_BIN_SIZE: ",NR_TIME_BIN_SIZE," | NR_MINIMUM_EVENTS: ", NR_MINIMUM_EVENTS)

@@ -4,9 +4,9 @@ from src.codebook import CodeBook
 
 def make_hvs(graphs, normalized_feat, num_of_graph_events):
     # 1. initialize parameters
-    dimension = 1000
+    dimension = 5000
     layer = 5
-    delta = 2
+    delta = 1 # 2
     equation = 11
     device = torch.device("cpu")
 
@@ -15,6 +15,7 @@ def make_hvs(graphs, normalized_feat, num_of_graph_events):
                           neighbor_pooling_type="sum", device=device, equation=equation).to(device)
     cb = CodeBook(dim=dimension)
 
+    print("HV dimention ", dimension)
     # 3. Load graph data
 
     # 4. Make hyper vectros
@@ -42,12 +43,12 @@ def make_hvs(graphs, normalized_feat, num_of_graph_events):
         Y.append(g.y.item())
 
     ## Save Hyper Vectors
-    path_to_save = ("data/" +
-                    str("normalized_graph" if normalized_feat == True else "unnormalized_graph") + "/hyper_vectors_E_" +
-                    (str("all") if num_of_graph_events == None else str(num_of_graph_events))+".pt")
-    torch.save({
-        'hvs': X,
-        'labels': Y
-    }, path_to_save)
+    # path_to_save = ("data/" +
+    #                 str("normalized_graph" if normalized_feat == True else "unnormalized_graph") + "/hyper_vectors_E_" +
+    #                 (str("all") if num_of_graph_events == None else str(num_of_graph_events))+".pt")
+    # torch.save({
+    #     'hvs': X,
+    #     'labels': Y
+    # }, path_to_save)
 
     return X, Y
