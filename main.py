@@ -1,14 +1,8 @@
-from fontTools.varLib import HVAR_FIELDS
-
-from src.loader import graph_loader
-from src.graph_to_vec_converter import make_hvs, HVs
+from src.graph_to_vec_converter import  HVs
 from sklearn.metrics       import accuracy_score, classification_report
 from sklearn.linear_model  import LogisticRegression
-from xgboost import XGBClassifier
-from sklearn.model_selection import GridSearchCV, train_test_split
-import numpy as np
-from sklearn.linear_model import RidgeClassifier
-from graph_generation import NMNISTGraphDataset
+from sklearn.model_selection import train_test_split
+from src.graph_generation import NMNISTGraphDataset
 from src.loader import ev_loader
 from src.graphcnnVSA_Binding_FULL import GraphCNN
 from src.codebook import CodeBook
@@ -18,9 +12,11 @@ import torch
 def main(normalized_feat, num_of_graph_events):
     print("[LOG] - parameter initialization.")
     # GRAPH parameters
+    DATA_PATH = "data"
     DATASET = "full"  # full / test      size of dataset loading for training and testing
+
     NORMALIZE_FEAT = False
-    NUM_OF_GRAPH_EVENTS = 10  # None, 10, 50, 100. etc
+    NUM_OF_GRAPH_EVENTS = 50  # None, 10, 50, 100. etc
     R = 4
     D_MAX = 16
 
@@ -31,15 +27,17 @@ def main(normalized_feat, num_of_graph_events):
     NR_MINIMUM_EVENTS = 3
 
     # GVFA parameters
-    HV_DIMENTION = 1000
+    HV_DIMENTION = 5000
     LAYERS = 5
     DELTA = 1  # 2
     EQUATION = 11
     DEVICE = torch.device("cpu")
 
+
+
     # load event streams
     print("[LOG] - Loading events")
-    full_ev_ds = ev_loader(root="data", dataset=DATASET)
+    full_ev_ds = ev_loader(root=DATA_PATH, dataset=DATASET)
 
     print("[LOG] - Making class objects.")
     MNISTGraph_model = NMNISTGraphDataset(tonic_raw_dataset=full_ev_ds, num_of_graph_events=NUM_OF_GRAPH_EVENTS,
@@ -67,6 +65,12 @@ def main(normalized_feat, num_of_graph_events):
     X_train, X_test, y_train, y_test = train_test_split(
         X, Y, test_size=0.20, random_state=42
     )
+
+    del cb
+    del hvs
+    del gvfa_model
+    del full_ev_ds
+
     print("[LOG] - Classification.")
     clf = LogisticRegression(
         solver='saga',  # handles high-dim sparse data efficiently
