@@ -1,21 +1,73 @@
+from fontTools.varLib import HVAR_FIELDS
 
 from src.loader import graph_loader
-from src.graph_to_vec_converter import make_hvs
+from src.graph_to_vec_converter import make_hvs, HVs
 from sklearn.metrics       import accuracy_score, classification_report
 from sklearn.linear_model  import LogisticRegression
 from xgboost import XGBClassifier
 from sklearn.model_selection import GridSearchCV, train_test_split
 import numpy as np
 from sklearn.linear_model import RidgeClassifier
+from graph_generation import NMNISTGraphDataset
+from src.loader import ev_loader
+from src.graphcnnVSA_Binding_FULL import GraphCNN
+from src.codebook import CodeBook
+import torch
+
 
 def main(normalized_feat, num_of_graph_events):
-    graphs = graph_loader(normalized_feat=normalized_feat, num_of_graph_events=num_of_graph_events)
-    X, Y = make_hvs(graphs, normalized_feat=normalized_feat, num_of_graph_events=num_of_graph_events)
+    print("[LOG] - parameter initialization.")
+    # GRAPH parameters
+    DATASET = "full"  # full / test      size of dataset loading for training and testing
+    NORMALIZE_FEAT = False
+    NUM_OF_GRAPH_EVENTS = 10  # None, 10, 50, 100. etc
+    R = 4
+    D_MAX = 16
+
+    # NOISE parameters
+    NOICE_REMOVED = True
+    NR_BIN_XY_SIZE = 15
+    NR_TIME_BIN_SIZE = 20_000
+    NR_MINIMUM_EVENTS = 3
+
+    # GVFA parameters
+    HV_DIMENTION = 1000
+    LAYERS = 5
+    DELTA = 1  # 2
+    EQUATION = 11
+    DEVICE = torch.device("cpu")
+
+    # load event streams
+    print("[LOG] - Loading events")
+    full_ev_ds = ev_loader(root="data", dataset=DATASET)
+
+    print("[LOG] - Making class objects.")
+    MNISTGraph_model = NMNISTGraphDataset(tonic_raw_dataset=full_ev_ds, num_of_graph_events=NUM_OF_GRAPH_EVENTS,
+                                          R=R, Dmax=D_MAX,
+                                          noise_remove=NOICE_REMOVED, normalized_feat=NORMALIZE_FEAT,
+                                          nr_bin_xy_size=NR_BIN_XY_SIZE, nr_minimum_events=NR_MINIMUM_EVENTS,
+                                          nr_time_bin_size=NR_TIME_BIN_SIZE)
+
+    gvfa_model = GraphCNN(input_dim=HV_DIMENTION, num_layers=LAYERS, delta=DELTA, graph_pooling_type="sum",
+                          neighbor_pooling_type="sum", device=DEVICE, equation=EQUATION).to(DEVICE)
+    cb = CodeBook(dim=HV_DIMENTION)
+    hvs = HVs(codebook=cb, gvfa_model=gvfa_model)
+
+
+    X = []
+    Y = []
+    print("[LOG] - Loading graph and converting to HVs.")
+    for i in range(len(full_ev_ds)):
+        print(i)
+        g = MNISTGraph_model.get(i)
+        x, y = hvs.make_hvs(graph=g)
+        X.append(x)
+        Y.append(y)
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, Y, test_size=0.20, random_state=42
     )
-
+    print("[LOG] - Classification.")
     clf = LogisticRegression(
         solver='saga',  # handles high-dim sparse data efficiently
         penalty='l2',  # ridge regularisation
@@ -72,12 +124,20 @@ def main(normalized_feat, num_of_graph_events):
     # clf = RidgeClassifier(alpha=0.001)
     clf.fit(X_train, y_train)
     # 3) evaluate
+    print("[LOG] - Predicting")
     y_pred = clf.predict(X_test)
     acc = accuracy_score(y_test, y_pred)
     print(f"Test accuracy: {acc * 100:.2f}%\n")
 
+    print("[LOG] - Making Report")
     print("Detailed classification report:")
     print(classification_report(y_test, y_pred))
+
+    print("[LOG]- NUM_OF_GRAPH_EVENTS:", NUM_OF_GRAPH_EVENTS, " | DATASET:", DATASET,
+          " | NORMALIZE_FEAT:", NORMALIZE_FEAT,
+          " | R:", R, " | D_MAX: ", D_MAX, " | NOICE_REMOVED: ", NOICE_REMOVED,
+          " | NR_BIN_XY_SIZE: ", NR_BIN_XY_SIZE, " | NR_TIME_BIN_SIZE: ", NR_TIME_BIN_SIZE, " | NR_MINIMUM_EVENTS: ",
+          NR_MINIMUM_EVENTS, " | HV_DIMENTION: ", HV_DIMENTION," | LAYERS: ", LAYERS," | DELTA: ", DELTA," | EQUATION: ", EQUATION,)
 
 
 
