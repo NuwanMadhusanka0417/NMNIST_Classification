@@ -26,7 +26,7 @@ class NMNISTGraphDataset(Dataset):
         self.Dmax = Dmax
     def filter_events(self, ev, size):
         times = ev['t']  # shape (N,)
-        mask_ = times > 120_000  # shape (N,) of dtype torch.bool
+        mask_ = times > 0 #120_000  # shape (N,) of dtype torch.bool
         ev_after_ = ev[mask_]
 
         # 2) take at most the first 100 of them
@@ -37,7 +37,7 @@ class NMNISTGraphDataset(Dataset):
 
     def get(self, idx):
         event, l = self.base[idx]
-        print(idx)
+        # print(idx)
 
         ## NOISE REMOVE USING VOXELS - divide events into voxel and remove voxel with,  number of events < min_events
         if self.noise_remove:

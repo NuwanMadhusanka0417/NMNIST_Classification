@@ -7,7 +7,7 @@ from src.loader import ev_loader
 from src.graphcnnVSA_Binding_FULL import GraphCNN
 from src.codebook import CodeBook
 import torch
-
+from sklearn.preprocessing import StandardScaler
 
 def main(normalized_feat, num_of_graph_events):
     print("[LOG] - parameter initialization.")
