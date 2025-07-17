@@ -7,13 +7,13 @@ from torch.utils.data import ConcatDataset
 def ev_loader(root:str = 'data', dataset = "full"):
 
     if dataset == "full":
-        train_ds = tonic.datasets.NMNIST(root, train=True)  # <- uses your .bin files
-        test_ds = tonic.datasets.NMNIST(root, train=False)
+        train_ds = tonic.datasets.ASLDVS(root, train=True)  # <- uses your .bin files
+        test_ds = tonic.datasets.ASLDVS(root, train=False)
         print("LOG: load full dataset")
         return ConcatDataset((train_ds, test_ds))
 
     else:
-        test_ds = tonic.datasets.NMNIST(root, train=False)
+        test_ds = tonic.datasets.ASLDVS(root, train=False)
         print("LOG: load only test dataset")
         return test_ds
 
