@@ -12,8 +12,15 @@ from sklearn.preprocessing import StandardScaler
 def main(normalized_feat, num_of_graph_events):
     print("[LOG] - parameter initialization.")
     # GRAPH parameters
+    DATA_NAME = "NCARS" # NCARS, NMNIST
     DATA_PATH = "data"
-    DATASET = "full"  # full / test      size of dataset loading for training and testing
+    DATASET = "test"  # full / test      size of dataset loading for training and testing
+
+    if DATA_NAME == "NCARS":
+        X_MAX = 360
+        Y_MAX = 360
+        T_MAX = 100_000_000
+        T_STEP = 10_000
 
     NORMALIZE_FEAT = False
     NUM_OF_GRAPH_EVENTS = 50  # None, 10, 50, 100. etc
@@ -48,7 +55,7 @@ def main(normalized_feat, num_of_graph_events):
 
     gvfa_model = GraphCNN(input_dim=HV_DIMENTION, num_layers=LAYERS, delta=DELTA, graph_pooling_type="sum",
                           neighbor_pooling_type="sum", device=DEVICE, equation=EQUATION).to(DEVICE)
-    cb = CodeBook(dim=HV_DIMENTION)
+    cb = CodeBook(dim=HV_DIMENTION, x_max=X_MAX, y_max=Y_MAX, t_max=T_MAX, t_step=T_STEP)
     hvs = HVs(codebook=cb, gvfa_model=gvfa_model)
 
 

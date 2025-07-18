@@ -1,20 +1,20 @@
 import tonic
 import torch
+import tonic.datasets.nmnist
 import tonic.transforms as transforms
 from torch.utils.data import ConcatDataset
-
+from src.ncars_data_loader import NCARS
 
 def ev_loader(root:str = 'data', dataset = "full"):
 
     if dataset == "full":
-        train_ds = tonic.datasets.ASLDVS(root, train=True)  # <- uses your .bin files
-        test_ds = tonic.datasets.ASLDVS(root, train=False)
+        train_ds = NCARS(root, split="NCARS/train")
+        test_ds = NCARS(root, split="NCARS/test")
         print("LOG: load full dataset")
         return ConcatDataset((train_ds, test_ds))
 
     else:
-        test_ds = tonic.datasets.ASLDVS(root, train=False)
-        print("LOG: load only test dataset")
+        test_ds = NCARS(root, split="NCARS/test")
         return test_ds
 
 
