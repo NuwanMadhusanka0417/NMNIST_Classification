@@ -11,7 +11,7 @@ def ev_loader(root:str = 'data', dataset = "full"):
         train_ds = NCARS(root, split="NCARS/train")
         test_ds = NCARS(root, split="NCARS/test")
         print("LOG: load full dataset")
-        return ConcatDataset((train_ds, test_ds))
+        return  train_ds, test_ds #ConcatDataset((train_ds, test_ds))
 
     else:
         test_ds = NCARS(root, split="NCARS/test")
