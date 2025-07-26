@@ -89,7 +89,9 @@ def main():
 
     scaler = StandardScaler()
     X_train = scaler.fit_transform(X_train)
-    X_test = scaler.transform(X_test)
+
+    scaler1 = StandardScaler()
+    X_test = scaler1.fit_transform(X_test)
 
     del cb
     del hvs
@@ -101,25 +103,24 @@ def main():
         print(elm)
         print("[LOG] - Classification.")
 
+        # clf = SVC(kernel="rbf", C=0.1, gamma=0.9,degree=6)
         pipe_rbf = Pipeline([
             ("sc", StandardScaler(with_mean=False)),
-            ("svc", SVC(kernel="rbf", ga))
+            ("svc", SVC(kernel="rbf"))
         ])
 
         param_grid = {
-            "svc__C": [0.1, 1, 3, 10],
+            "svc__C": [0.1, 1, 3],
             "svc__gamma": ["scale", 1e-3, 1e-2, 1e-1],
             "svc__class_weight": [None, "balanced"]
         }
 
         grid = GridSearchCV(pipe_rbf,
                             param_grid=param_grid,
-                            cv=5,
                             n_jobs=-1,
                             verbose=1)
         grid.fit(X_train, y_train)
 
-        print("Best params :", grid.best_params_)
 
         print(f"Train accuracy: {accuracy_score(y_train, grid.predict(X_train)) * 100:.2f}%")
         print(f"Test  accuracy: {accuracy_score(y_test, grid.predict(X_test)) * 100:.2f}%")
@@ -129,7 +130,9 @@ def main():
               " | R:", R, " | D_MAX: ", D_MAX, " | NOICE_REMOVED: ", NOICE_REMOVED,
               " | NR_BIN_XY_SIZE: ", NR_BIN_XY_SIZE, " | NR_TIME_BIN_SIZE: ", NR_TIME_BIN_SIZE, " | NR_MINIMUM_EVENTS: ",
               NR_MINIMUM_EVENTS, " | HV_DIMENTION: ", HV_DIMENTION," | LAYERS: ", LAYERS," | DELTA: ", DELTA," | EQUATION: ", EQUATION,)
-
+        print(grid.best_params_)
+        print(grid.best_score_)
+        print(grid.param_grid)
         # del clf
 
 if __name__ == "__main__":
