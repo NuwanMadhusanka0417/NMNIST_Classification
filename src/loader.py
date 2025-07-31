@@ -4,18 +4,12 @@ import tonic.datasets.nmnist
 import tonic.transforms as transforms
 from torch.utils.data import ConcatDataset
 from src.ncars_data_loader import NCARS
+from src.snkth_data_loader import SNKTH
+def ev_loader(data_name, root:str = 'data', dataset ="full"):
 
-def ev_loader(root:str = 'data', dataset = "full"):
-
-    if dataset == "full":
-        train_ds = NCARS(root, split="NCARS/train")
-        test_ds = NCARS(root, split="NCARS/test")
-        print("LOG: load full dataset")
-        return  train_ds, test_ds
-
-    else:
-        test_ds = NCARS(root, split="NCARS/test")
-        return test_ds
+    if data_name == "SNKTH":
+        dataset = SNKTH(root="data/SNKTH")
+        return dataset
 
 
 def graph_loader(normalized_feat = False, num_of_graph_events = None):
