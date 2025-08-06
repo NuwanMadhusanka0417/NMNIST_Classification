@@ -59,7 +59,7 @@ class SNKTH():
         """
         self.files = []
         # Replace ["classA", "classB", ...] with actual class folder names in SNKTH dataset:
-        class_folders = ["jogging", "running"]  # example class names
+        class_folders = ["jogging", "running","boxing","handclapping","handwaving","walking"]  # example class names
         for label, sub in enumerate(class_folders):
             folder = os.path.join(root,  sub)
             for fname in os.listdir(folder):
