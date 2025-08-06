@@ -16,7 +16,7 @@ def main(normalized_feat, num_of_graph_events):
     DATASET = "full"  # full / test      size of dataset loading for training and testing
 
     NORMALIZE_FEAT = False
-    NUM_OF_GRAPH_EVENTS = 50  # None, 10, 50, 100. etc
+    NUM_OF_GRAPH_EVENTS = 100  # None, 10, 50, 100. etc
     R = 4
     D_MAX = 16
 
