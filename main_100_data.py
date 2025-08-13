@@ -12,12 +12,14 @@ from sklearn.metrics import mean_absolute_error, accuracy_score
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
+import numpy as np
+from torch.utils.data import Subset
 
 def main(normalized_feat, num_of_graph_events):
     print("[LOG] - parameter initialization.")
     # GRAPH parameters
     DATA_PATH = "data"
-    DATASET = "full"  # full / test      size of dataset loading for training and testing
+    DATASET = "test"  # full / test      size of dataset loading for training and testing
 
     NORMALIZE_FEAT = False
     NUM_OF_GRAPH_EVENTS = 100  # None, 10, 50, 100. etc
@@ -41,8 +43,24 @@ def main(normalized_feat, num_of_graph_events):
     # load event streams
     print("[LOG] - Loading events")
     full_ev_ds = ev_loader(root=DATA_PATH, dataset=DATASET)
-    ds_train, ds_test = train_test_split(full_ev_ds, test_size=0.2, random_state=42, shuffle=True)   
 
+    ###################################################################
+
+    indices = np.arange(len(full_ev_ds))
+    labels  = [full_ev_ds[i][1] for i in indices]
+    train_idx, test_idx = train_test_split(
+        indices,
+        test_size=0.2,
+        random_state=42,
+        shuffle=True,
+        stratify=labels
+    )
+
+    ds_train = Subset(full_ev_ds, train_idx.tolist())
+    ds_test  = Subset(full_ev_ds, test_idx.tolist())
+
+    # ds_train, ds_test = train_test_split(full_ev_ds, test_size=0.2, random_state=42, shuffle=True)   
+    ######################################################################
     print("[LOG] - Making class objects.")
 
     MNISTGraph_model_train_100 = NMNISTGraphDataset(tonic_raw_dataset=ds_train, num_of_graph_events=NUM_OF_GRAPH_EVENTS,
@@ -69,7 +87,7 @@ def main(normalized_feat, num_of_graph_events):
                                                   nr_bin_xy_size=NR_BIN_XY_SIZE, nr_minimum_events=NR_MINIMUM_EVENTS,
                                                   nr_time_bin_size=NR_TIME_BIN_SIZE)
     
-    HV_Dimensions = [1000, 3000, 5000, 10000, 15000]
+    HV_Dimensions = [10000]
     print("Start For loop")
     for HV_DIMENTION in HV_Dimensions:
 
@@ -78,7 +96,7 @@ def main(normalized_feat, num_of_graph_events):
         cb = CodeBook(dim=HV_DIMENTION)
         hvs = HVs(codebook=cb, gvfa_model=gvfa_model)
 
-        X_train_100, X_test_100, X_test_50, X_test_10, Y_train_100, Y_test_100, y_test_50_10 = [], [], [], [], [], [], []
+        X_train_100, X_test_100, X_test_50, X_test_10, Y_train_100, Y_test_100, y_test_50, y_test_10 = [], [], [], [], [], [], [], []
 
         for i in range(len(ds_train)):
             # print(i)
@@ -100,67 +118,73 @@ def main(normalized_feat, num_of_graph_events):
 
             # print(g)
 
-            x_50, y = hvs.make_hvs(graph=g_50)
-            x_10, _ = hvs.make_hvs(graph=g_10)
+            x_50, y_50 = hvs.make_hvs(graph=g_50)
+            x_10, y_10 = hvs.make_hvs(graph=g_10)
 
             X_test_50.append(x_50)
             X_test_10.append(x_10)
-            y_test_50_10.append(y)
+            y_test_50.append(y_50)
+            y_test_10.append(y_10)
         print("Start Classification")
-        clf = LogisticRegression(
-            solver='saga',       # handles high-dimensional sparse data
-            penalty='l2',        # ridge regularization
-            n_jobs=-1,           # parallelize over cores
-            random_state=42
-        )
+        CS = [0.5, 1]
+        for c in CS:
+            print("C = ", c)
+            clf = LogisticRegression(
+                C=c,
+                solver='saga',       # handles high-dimensional sparse data
+                penalty='l2',        # ridge regularization
+                n_jobs=-1,           # parallelize over cores
+                max_iter=200,
+                random_state=42
+            )
 
-        # 2. Pipeline (with scaling for sparse/hypervector inputs)
-        pipe = Pipeline([
-            ("scaler", StandardScaler(with_mean=False)),
-            ("lr",    clf)
-        ])
+            # 2. Pipeline (with scaling for sparse/hypervector inputs)
+            # pipe = Pipeline([
+            #     ("scaler", StandardScaler(with_mean=False)),
+            #     ("lr",    clf)
+            # ])
 
-        # 3. Expanded hyperparameter grid (now including max_iter)
-        param_grid = {
-            "lr__C":            [ 0.1, 1],  # 0.1
-            "lr__tol":          [ 1e-3, 1e-2],
-            "lr__class_weight": [None],
-            "lr__max_iter":     [1000, 2000]
-        }
+            # # 3. Expanded hyperparameter grid (now including max_iter)
+            # param_grid = {
+            #     "lr__C":            [ 0.1, 1],  # 0.1
+            #     "lr__tol":          [ 1e-3, 1e-2],
+            #     "lr__class_weight": [None],
+            #     "lr__max_iter":     [1000, 2000]
+            # }
 
-        # 4. GridSearchCV setup
-        grid = GridSearchCV(
-            estimator=pipe,
-            param_grid=param_grid,
-            cv=5,                 # 5-fold CV
-            scoring="accuracy",
-            n_jobs=-1,
-            verbose=1
-        )
+            # # 4. GridSearchCV setup
+            # grid = GridSearchCV(
+            #     estimator=pipe,
+            #     param_grid=param_grid,
+            #     cv=5,                 # 5-fold CV
+            #     scoring="accuracy",
+            #     n_jobs=-1,
+            #     verbose=1
+            # )
 
-        grid.fit(X_train_100, Y_train_100)
-        print(grid.best_params_)
-        print(grid.best_score_)
-        print(grid.param_grid)
-        
+            clf.fit(X_train_100, Y_train_100)
+            # print(grid.best_params_)
+            # print(grid.best_score_)
+            # print(grid.param_grid)
+            
 
-        print("----100------")
-        print(f"Train accuracy: {accuracy_score(Y_train_100, grid.predict(X_train_100)) * 100:.2f}%")
-        print(f"Test  accuracy: {accuracy_score(Y_test_100, grid.predict(X_test_100)) * 100:.2f}%")
+            print("----100------")
+            print(f"Train accuracy: {accuracy_score(Y_train_100, clf.predict(X_train_100)) * 100:.2f}%")
+            print(f"Test  accuracy: {accuracy_score(Y_test_100, clf.predict(X_test_100)) * 100:.2f}%")
 
-        print("----50------")
-        print(f"Test  accuracy: {accuracy_score(y_test_50_10, grid.predict(X_test_50)) * 100:.2f}%")
+            print("----50------")
+            print(f"Test  accuracy: {accuracy_score(y_test_50, clf.predict(X_test_50)) * 100:.2f}%")
 
-        print("----10------")
-        print(f"Test  accuracy: {accuracy_score(y_test_50_10, grid.predict(X_test_10)) * 100:.2f}%")
+            print("----10------")
+            print(f"Test  accuracy: {accuracy_score(y_test_10, clf.predict(X_test_10)) * 100:.2f}%")
 
-        print("[LOG]- NUM_OF_GRAPH_EVENTS:", NUM_OF_GRAPH_EVENTS, " | DATASET:", DATASET,
-              " | NORMALIZE_FEAT:", NORMALIZE_FEAT,
-              " | R:", R, " | D_MAX: ", D_MAX, " | NOICE_REMOVED: ", NOICE_REMOVED,
-              " | NR_BIN_XY_SIZE: ", NR_BIN_XY_SIZE, " | NR_TIME_BIN_SIZE: ", NR_TIME_BIN_SIZE,
-              " | NR_MINIMUM_EVENTS: ",
-              NR_MINIMUM_EVENTS, " | HV_DIMENTION: ", HV_DIMENTION, " | LAYERS: ", LAYERS, " | DELTA: ", DELTA,
-              " | EQUATION: ", EQUATION, )
+            print("[LOG]- NUM_OF_GRAPH_EVENTS:", NUM_OF_GRAPH_EVENTS, " | DATASET:", DATASET,
+                " | NORMALIZE_FEAT:", NORMALIZE_FEAT,
+                " | R:", R, " | D_MAX: ", D_MAX, " | NOICE_REMOVED: ", NOICE_REMOVED,
+                " | NR_BIN_XY_SIZE: ", NR_BIN_XY_SIZE, " | NR_TIME_BIN_SIZE: ", NR_TIME_BIN_SIZE,
+                " | NR_MINIMUM_EVENTS: ",
+                NR_MINIMUM_EVENTS, " | HV_DIMENTION: ", HV_DIMENTION, " | LAYERS: ", LAYERS, " | DELTA: ", DELTA,
+                " | EQUATION: ", EQUATION, )
         
         del gvfa_model
         del cb
@@ -171,8 +195,9 @@ def main(normalized_feat, num_of_graph_events):
         del X_test_10
         del Y_train_100
         del Y_test_100
-        del y_test_50_10
-        del grid
+        del y_test_50
+        del y_test_10
+        del clf
 
 
 if __name__ == "__main__":
