@@ -4,7 +4,7 @@ import tonic.transforms as transforms
 from torch.utils.data import ConcatDataset
 
 
-def ev_loader(root:str = 'data', dataset = "full"):
+def ev_loader(root:str = '/g/data/jq77/nuwan/data', dataset = "full"):
 
     if dataset == "full":
         train_ds = tonic.datasets.NMNIST(root, train=True)  # <- uses your .bin files

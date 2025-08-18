@@ -24,13 +24,20 @@ class NMNISTGraphDataset(Dataset):
 
         self.R = R
         self.Dmax = Dmax
-    def filter_events(self, ev, size):
-        times = ev['t']  # shape (N,)
-        mask_ = times > 0 #120_000  # shape (N,) of dtype torch.bool
-        ev_after_ = ev[mask_]
+    # def filter_events(self, ev, size):
+    #     times = ev['t']  # shape (N,)
+    #     mask_ = times > 0 #120_000  # shape (N,) of dtype torch.bool
+    #     ev_after_ = ev[mask_]
 
-        # 2) take at most the first 100 of them
-        return ev_after_[:size]
+    #     # 2) take at most the first 100 of them
+    #     return ev_after_[:size]
+
+    def filter_events(self, ev, size):
+
+        ev = np.sort(ev, order='t')           # only if not already sorted
+        out = ev[ev['t'] >= 120000]
+
+        return out[:size]
 
     def len(self):
         return len(self.base)

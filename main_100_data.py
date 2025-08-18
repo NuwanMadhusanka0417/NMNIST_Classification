@@ -14,12 +14,23 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 import numpy as np
 from torch.utils.data import Subset
+from sklearn.preprocessing import Normalizer, StandardScaler
+from sklearn.pipeline import Pipeline
+from datetime import datetime
+import os
+from sklearn.decomposition import TruncatedSVD
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.svm import LinearSVC
+from sklearn.svm  import SVC
+from sklearn.model_selection import StratifiedGroupKFold
+
 
 def main(normalized_feat, num_of_graph_events):
     print("[LOG] - parameter initialization.")
     # GRAPH parameters
     DATA_PATH = "data"
-    DATASET = "test"  # full / test      size of dataset loading for training and testing
+    DATASET = "full"  # full / test      size of dataset loading for training and testing
 
     NORMALIZE_FEAT = False
     NUM_OF_GRAPH_EVENTS = 100  # None, 10, 50, 100. etc
@@ -39,12 +50,18 @@ def main(normalized_feat, num_of_graph_events):
     DEVICE = torch.device("cpu")
 
 
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    out_dir = "logs"
+    os.makedirs(out_dir, exist_ok=True)
+    out_path = os.path.join(out_dir, f"clf_svm_{ts}.txt")
 
     # load event streams
     print("[LOG] - Loading events")
-    full_ev_ds = ev_loader(root=DATA_PATH, dataset=DATASET)
+    full_ev_ds = ev_loader(dataset=DATASET)
 
     ###################################################################
+
+    # print(full_ev_ds.shape)
 
     indices = np.arange(len(full_ev_ds))
     labels  = [full_ev_ds[i][1] for i in indices]
@@ -59,7 +76,10 @@ def main(normalized_feat, num_of_graph_events):
     ds_train = Subset(full_ev_ds, train_idx.tolist())
     ds_test  = Subset(full_ev_ds, test_idx.tolist())
 
-    # ds_train, ds_test = train_test_split(full_ev_ds, test_size=0.2, random_state=42, shuffle=True)   
+    # sgkf = StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=42)
+    # ds_train, ds_test= next(sgkf.split(np.zeros(len(y)), y, groups=recording_id))
+
+    # ds_train, ds_test = train_test_split(full_ev_ds, test_size=0.2, random_state=42, shuffle=True, )   
     ######################################################################
     print("[LOG] - Making class objects.")
 
@@ -87,7 +107,7 @@ def main(normalized_feat, num_of_graph_events):
                                                   nr_bin_xy_size=NR_BIN_XY_SIZE, nr_minimum_events=NR_MINIMUM_EVENTS,
                                                   nr_time_bin_size=NR_TIME_BIN_SIZE)
     
-    HV_Dimensions = [10000]
+    HV_Dimensions = [5000, 10000, 15000]
     print("Start For loop")
     for HV_DIMENTION in HV_Dimensions:
 
@@ -126,65 +146,74 @@ def main(normalized_feat, num_of_graph_events):
             y_test_50.append(y_50)
             y_test_10.append(y_10)
         print("Start Classification")
-        CS = [0.5, 1]
-        for c in CS:
-            print("C = ", c)
-            clf = LogisticRegression(
-                C=c,
-                solver='saga',       # handles high-dimensional sparse data
-                penalty='l2',        # ridge regularization
-                n_jobs=-1,           # parallelize over cores
-                max_iter=200,
-                random_state=42
-            )
+        CS = [0.05]
+        iteration = [100]
+        for iters in iteration:
+            for c in CS:
+                # print("############  C = ", c, "   iteration = ", iters)
+                # clf = Pipeline([
+                #     ("svd", TruncatedSVD(n_components=512, random_state=42)),
+                #     ("scaler", StandardScaler()),  # after SVD output is dense, mean-centering is fine
+                #     ("clf", LogisticRegression(
+                #         solver="saga",
+                #         penalty="elasticnet",      # better than pure L2 for high-dim; switch to 'l2' if you prefer
+                #         l1_ratio=0.15,             # ignored if penalty='l2'
+                #         multi_class="multinomial",
+                #         C=c,
+                #         max_iter=iters,
+                #         n_jobs=-1,
+                #         random_state=42
+                #     ))
+                # ])
 
-            # 2. Pipeline (with scaling for sparse/hypervector inputs)
-            # pipe = Pipeline([
-            #     ("scaler", StandardScaler(with_mean=False)),
-            #     ("lr",    clf)
-            # ])
+                # clf = SVC(kernel="rbf", C=c, gamma=0.9,degree=6)
+                clf = LogisticRegression(solver = 'saga', penalty = 'l2', n_jobs=-1, random_state=42)
 
-            # # 3. Expanded hyperparameter grid (now including max_iter)
-            # param_grid = {
-            #     "lr__C":            [ 0.1, 1],  # 0.1
-            #     "lr__tol":          [ 1e-3, 1e-2],
-            #     "lr__class_weight": [None],
-            #     "lr__max_iter":     [1000, 2000]
-            # }
+                # svm = Pipeline([
+                #     ("svd", TruncatedSVD(n_components=512, random_state=42)),
+                #     ("scaler", StandardScaler()),
+                #     ("svm", LinearSVC(C=c, max_iter=iters, random_state=42))
+                # ])
 
-            # # 4. GridSearchCV setup
-            # grid = GridSearchCV(
-            #     estimator=pipe,
-            #     param_grid=param_grid,
-            #     cv=5,                 # 5-fold CV
-            #     scoring="accuracy",
-            #     n_jobs=-1,
-            #     verbose=1
-            # )
+                clf.fit(X_train_100, Y_train_100)
+                # svm.fit(X_train_100, Y_train_100)
 
-            clf.fit(X_train_100, Y_train_100)
-            # print(grid.best_params_)
-            # print(grid.best_score_)
-            # print(grid.param_grid)
-            
 
-            print("----100------")
-            print(f"Train accuracy: {accuracy_score(Y_train_100, clf.predict(X_train_100)) * 100:.2f}%")
-            print(f"Test  accuracy: {accuracy_score(Y_test_100, clf.predict(X_test_100)) * 100:.2f}%")
+                #### first classofoer###########
+                acc_100_tr_c = f"{accuracy_score(Y_train_100, clf.predict(X_train_100)) * 100:.2f}"
+                acc_100_c = f"{accuracy_score(Y_test_100, clf.predict(X_test_100)) * 100:.2f}"
+                acc_50_c = f"{accuracy_score(y_test_50, clf.predict(X_test_50)) * 100:.2f}"
+                acc_10_c = f"{accuracy_score(y_test_10, clf.predict(X_test_10)) * 100:.2f}"
 
-            print("----50------")
-            print(f"Test  accuracy: {accuracy_score(y_test_50, clf.predict(X_test_50)) * 100:.2f}%")
+                ### second classofoer###########
+                # acc_100_tr_s = f"{accuracy_score(Y_train_100, svm.predict(X_train_100)) * 100:.2f}"
+                # acc_100_s = f"{accuracy_score(Y_test_100, svm.predict(X_test_100)) * 100:.2f}"
+                # acc_50_s = f"{accuracy_score(y_test_50, svm.predict(X_test_50)) * 100:.2f}"
+                # acc_10_s = f"{accuracy_score(y_test_10, svm.predict(X_test_10)) * 100:.2f}"
 
-            print("----10------")
-            print(f"Test  accuracy: {accuracy_score(y_test_10, clf.predict(X_test_10)) * 100:.2f}%")
 
-            print("[LOG]- NUM_OF_GRAPH_EVENTS:", NUM_OF_GRAPH_EVENTS, " | DATASET:", DATASET,
-                " | NORMALIZE_FEAT:", NORMALIZE_FEAT,
-                " | R:", R, " | D_MAX: ", D_MAX, " | NOICE_REMOVED: ", NOICE_REMOVED,
-                " | NR_BIN_XY_SIZE: ", NR_BIN_XY_SIZE, " | NR_TIME_BIN_SIZE: ", NR_TIME_BIN_SIZE,
-                " | NR_MINIMUM_EVENTS: ",
-                NR_MINIMUM_EVENTS, " | HV_DIMENTION: ", HV_DIMENTION, " | LAYERS: ", LAYERS, " | DELTA: ", DELTA,
-                " | EQUATION: ", EQUATION, )
+                print("---------------------------------")
+                # print("Dimention, C, Iterations, 100_TR, 100, 50, 10")
+                line1 = f"SVC, {HV_DIMENTION}, {c}, {iters}, {acc_100_tr_c},  {acc_100_c}, {acc_50_c}, {acc_10_c} \n" 
+                print(line1)
+                # line2 = f"svm, {HV_DIMENTION}, {c}, {iters}, {acc_100_tr_s},  {acc_100_s}, {acc_50_s}, {acc_10_s} \n" 
+                # print(line2)
+
+                with open(out_path, "a+", encoding="utf-8") as f:
+                    f.write(line1)
+                    # f.write(line2)
+                '''print("[LOG]- First - NUM_OF_GRAPH_EVENTS:", NUM_OF_GRAPH_EVENTS, " | DATASET:", DATASET,
+                    " | NORMALIZE_FEAT:", NORMALIZE_FEAT,
+                    " | R:", R, " | D_MAX: ", D_MAX, " | NOICE_REMOVED: ", NOICE_REMOVED,
+                    " | NR_BIN_XY_SIZE: ", NR_BIN_XY_SIZE, " | NR_TIME_BIN_SIZE: ", NR_TIME_BIN_SIZE,
+                    " | NR_MINIMUM_EVENTS: ",
+                    NR_MINIMUM_EVENTS, " | HV_DIMENTION: ", HV_DIMENTION, " | LAYERS: ", LAYERS, " | DELTA: ", DELTA,
+                    " | EQUATION: ", EQUATION, )'''
+
+                del clf
+                # del svm
+
+
         
         del gvfa_model
         del cb
@@ -197,7 +226,7 @@ def main(normalized_feat, num_of_graph_events):
         del Y_test_100
         del y_test_50
         del y_test_10
-        del clf
+
 
 
 if __name__ == "__main__":
