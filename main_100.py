@@ -73,7 +73,7 @@ MNISTGraph_model_test_10 = NMNISTGraphDataset(tonic_raw_dataset=test_ds, num_of_
                                             nr_bin_xy_size=NR_BIN_XY_SIZE, nr_minimum_events=NR_MINIMUM_EVENTS,
                                             nr_time_bin_size=NR_TIME_BIN_SIZE)
 
-items = [1000, 5000, 7000]
+items = [7000, 10000, 15000]
 for item in items:
     HV_DIMENTION = item
     gvfa_model = GraphCNN(input_dim=HV_DIMENTION, num_layers=LAYERS, delta=DELTA, graph_pooling_type="sum",
@@ -128,42 +128,36 @@ for item in items:
     print("[LOG] - Classification.")
 
     # clf = SVC(kernel="rbf", C=0.1, gamma=0.9,degree=6)
-    grid = SVC(kernel="rbf", C=3, gamma='scale', class_weight="balanced")
-    # pipe_rbf = Pipeline([
-    #     ("sc", StandardScaler(with_mean=False)),
-    #     ("svc", SVC(kernel="rbf"))
-    # ])
+    CS = [3,4,5]
+    for c in CS:
+        grid = SVC(kernel="rbf", C=c, gamma='scale', class_weight="balanced")
 
-    # param_grid = {
-    #     "svc__C": [0.1, 1, 3],
-    #     "svc__gamma": ["scale", 1e-3, 1e-2, 1e-1],
-    #     "svc__class_weight": [None, "balanced"]
-    # }
+        grid.fit(X_train, y_train)
 
-    # grid = GridSearchCV(pipe_rbf,
-    #                     param_grid=param_grid,
-    #                     n_jobs=-1,
-    #                     verbose=1)
-    grid.fit(X_train, y_train)
+        tr_acc = f"{accuracy_score(y_train, grid.predict(X_train)) * 100:.2f}%"
+        ts_100 = f"{accuracy_score(y_test, grid.predict(X_test)) * 100:.2f}%"
+        ts_50 =  f"{accuracy_score(y_test_50_10, grid.predict(X_test_50)) * 100:.2f}%"
+        ts_10 = f"{accuracy_score(y_test_50_10, grid.predict(X_test_10)) * 100:.2f}%"
 
-    # print(grid.best_params_)
-    # print(grid.best_score_)
-    # print(grid.param_grid)
+        print(f"{HV_DIMENTION}, {c}, {tr_acc}, {ts_100}, {ts_50}, {ts_10}")
 
-    print("----100------")
-    print(f"Train accuracy: {accuracy_score(y_train, grid.predict(X_train)) * 100:.2f}%")
-    print(f"Test  accuracy: {accuracy_score(y_test, grid.predict(X_test)) * 100:.2f}%")
+        # print("----100------")
+        # print(f"Train accuracy: {accuracy_score(y_train, grid.predict(X_train)) * 100:.2f}%")
+        # print(f"Test  accuracy: {accuracy_score(y_test, grid.predict(X_test)) * 100:.2f}%")
 
-    print("----50------")
-    print(f"Test  accuracy: {accuracy_score(y_test_50_10, grid.predict(X_test_50)) * 100:.2f}%")
+        # print("----50------")
+        # print(f"Test  accuracy: {accuracy_score(y_test_50_10, grid.predict(X_test_50)) * 100:.2f}%")
 
-    print("----10------")
-    print(f"Test  accuracy: {accuracy_score(y_test_50_10, grid.predict(X_test_10)) * 100:.2f}%")
+        # print("----10------")
+        # print(f"Test  accuracy: {accuracy_score(y_test_50_10, grid.predict(X_test_10)) * 100:.2f}%")
 
-    print("[LOG]- NUM_OF_GRAPH_EVENTS:", NUM_OF_GRAPH_EVENTS, " | DATASET:", DATASET,
-          " | NORMALIZE_FEAT:", NORMALIZE_FEAT,
-          " | R:", R, " | D_MAX: ", D_MAX, " | NOICE_REMOVED: ", NOICE_REMOVED,
-          " | NR_BIN_XY_SIZE: ", NR_BIN_XY_SIZE, " | NR_TIME_BIN_SIZE: ", NR_TIME_BIN_SIZE, " | NR_MINIMUM_EVENTS: ",
-          NR_MINIMUM_EVENTS, " | HV_DIMENTION: ", HV_DIMENTION," | LAYERS: ", LAYERS," | DELTA: ", DELTA," | EQUATION: ", EQUATION,)
+        # print("[LOG]- NUM_OF_GRAPH_EVENTS:", NUM_OF_GRAPH_EVENTS, " | DATASET:", DATASET,
+        #     " | NORMALIZE_FEAT:", NORMALIZE_FEAT,
+        #     " | R:", R, " | D_MAX: ", D_MAX, " | NOICE_REMOVED: ", NOICE_REMOVED,
+        #     " | NR_BIN_XY_SIZE: ", NR_BIN_XY_SIZE, " | NR_TIME_BIN_SIZE: ", NR_TIME_BIN_SIZE, " | NR_MINIMUM_EVENTS: ",
+        #     NR_MINIMUM_EVENTS, " | HV_DIMENTION: ", HV_DIMENTION," | LAYERS: ", LAYERS," | DELTA: ", DELTA," | EQUATION: ", EQUATION,)
+
+
+        # print(f)
 
         # del clf

@@ -75,7 +75,7 @@ def main():
 
         X_train, X_test, y_train, y_test = [],[],[],[]
         print("[LOG] - Loading graph and converting to HVs.")
-        for i in range(len(ds)):
+        for i in range(len(train_ds)):
             g = MNISTGraph_model_train.get(i)
             x, y = hvs.make_hvs(graph=g)
             X_train.append(x)
