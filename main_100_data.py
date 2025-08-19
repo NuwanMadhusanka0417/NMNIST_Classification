@@ -14,6 +14,17 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 import numpy as np
 from torch.utils.data import Subset
+from sklearn.preprocessing import Normalizer, StandardScaler
+from sklearn.pipeline import Pipeline
+from datetime import datetime
+import os
+from sklearn.decomposition import TruncatedSVD
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.svm import LinearSVC
+from sklearn.svm  import SVC
+from sklearn.model_selection import StratifiedGroupKFold
+
 
 def main(normalized_feat, num_of_graph_events):
     print("[LOG] - parameter initialization.")
@@ -39,6 +50,10 @@ def main(normalized_feat, num_of_graph_events):
     DEVICE = torch.device("cpu")
 
 
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    out_dir = "logs"
+    os.makedirs(out_dir, exist_ok=True)
+    out_path = os.path.join(out_dir, f"clf_svm_{ts}.txt")
 
     # load event streams
     print("[LOG] - Loading events")
@@ -87,7 +102,7 @@ def main(normalized_feat, num_of_graph_events):
                                                   nr_bin_xy_size=NR_BIN_XY_SIZE, nr_minimum_events=NR_MINIMUM_EVENTS,
                                                   nr_time_bin_size=NR_TIME_BIN_SIZE)
     
-    HV_Dimensions = [15000]
+    HV_Dimensions = [5000, 10000, 15000]
     print("Start For loop")
     for HV_DIMENTION in HV_Dimensions:
 
