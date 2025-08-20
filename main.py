@@ -19,7 +19,7 @@ def main():
     # GRAPH parameters
     DATA_NAME = "NCARS" # NCARS, NMNIST
     DATA_PATH = "data"
-    DATASET = "test"  # full / test      size of dataset loading for training and testing
+    DATASET = "full"  # full / test      size of dataset loading for training and testing
 
     if DATA_NAME == "NCARS":
         X_MAX = 360
