@@ -19,7 +19,7 @@ def main():
     # GRAPH parameters
     DATA_NAME = "NCARS" # NCARS, NMNIST
     DATA_PATH = "data"
-    DATASET = "test"  # full / test      size of dataset loading for training and testing
+    DATASET = "full"  # full / test      size of dataset loading for training and testing
 
     if DATA_NAME == "NCARS":
         X_MAX = 360
@@ -96,7 +96,7 @@ def main():
         del gvfa_model
         # del full_ev_ds
 
-        el = [0.1, 0.5, 1, 3]
+        el = [1, 3, 5]
         for elm in el:
             print(elm)
             print("[LOG] - Classification.")

@@ -73,7 +73,7 @@ MNISTGraph_model_test_10 = NMNISTGraphDataset(tonic_raw_dataset=test_ds, num_of_
                                             nr_bin_xy_size=NR_BIN_XY_SIZE, nr_minimum_events=NR_MINIMUM_EVENTS,
                                             nr_time_bin_size=NR_TIME_BIN_SIZE)
 
-items = [7000, 10000, 15000]
+items = [6000, 7000, 8000, 10000, 15000]
 for item in items:
     HV_DIMENTION = item
     gvfa_model = GraphCNN(input_dim=HV_DIMENTION, num_layers=LAYERS, delta=DELTA, graph_pooling_type="sum",
@@ -128,7 +128,7 @@ for item in items:
     print("[LOG] - Classification.")
 
     # clf = SVC(kernel="rbf", C=0.1, gamma=0.9,degree=6)
-    CS = [3,4,5]
+    CS = [3,4,5, 6]
     for c in CS:
         grid = SVC(kernel="rbf", C=c, gamma='scale', class_weight="balanced")
 
