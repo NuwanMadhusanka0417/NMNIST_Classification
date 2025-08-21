@@ -100,9 +100,9 @@ def main():
             X_test_100.append(x)
             Y_test_100.append(y)
 
-        # scaler = StandardScaler()
-        # X_train = scaler.fit_transform(X_train_)
-        # X_test = scaler.fit_transform(X_test_)
+        scaler = StandardScaler()
+        X_train_100 = scaler.fit_transform(X_train_100)
+        X_test_100 = scaler.transform(X_test_100)
 
         for i in range(len(ds_test)):
             # print(i)
@@ -118,68 +118,61 @@ def main():
             X_test_10.append(x_10)
             y_test_50_10.append(y)
 
-        # X_test_50 = scaler.fit_transform(X_test_50_)
-        # X_test_10 = scaler.fit_transform(X_test_10_)
+        X_test_50 = scaler.fit_transform(X_test_50)
+        X_test_10 = scaler.fit_transform(X_test_10)
+
+
+        print("Start Classification")
+        CS = [0.05, 1, 3 ]
+        iterations = [100, 200, 500, 800]
+        for c in CS:
+            for iters in iterations:
+                print("C = ", c)
+                clf = LogisticRegression(
+                    C=c,
+                    solver='saga',       # handles high-dimensional sparse data
+                    penalty='l2',        # ridge regularization
+                    n_jobs=-1,           # parallelize over cores
+                    max_iter=iters,
+                    random_state=42,
+                    class_weight='balanced'
+                )
+
+                clf.fit(X_train_100, Y_train_100)
+
+                tr_acc = f"{accuracy_score(Y_train_100, clf.predict(X_train_100)) * 100:.2f}%"
+                ts_100 = f"{accuracy_score(Y_test_100, clf.predict(X_test_100)) * 100:.2f}%"
+                ts_50 =  f"{accuracy_score(y_test_50_10, clf.predict(X_test_50)) * 100:.2f}%"
+                ts_10 = f"{accuracy_score(y_test_50_10, clf.predict(X_test_10)) * 100:.2f}%"
+
+                print(f"SNKTH-lgst {HV_DIMENTION}, {iters} {c}, {tr_acc}, {ts_100}, {ts_50}, {ts_10}")
+
+            grid = SVC(kernel="rbf", C=c, gamma='scale', class_weight="balanced")
+
+            grid.fit(X_train_100, Y_train_100)
+
+            tr_acc = f"{accuracy_score(Y_train_100, grid.predict(X_train_100)) * 100:.2f}%"
+            ts_100 = f"{accuracy_score(Y_test_100, grid.predict(X_test_100)) * 100:.2f}%"
+            ts_50 =  f"{accuracy_score(y_test_50_10, grid.predict(X_test_50)) * 100:.2f}%"
+            ts_10 = f"{accuracy_score(y_test_50_10, grid.predict(X_test_10)) * 100:.2f}%"
+
+            print(f"SNKTH-SVC {HV_DIMENTION}, {c}, {tr_acc}, {ts_100}, {ts_50}, {ts_10}")
+
+
+
+
+
 
         del cb
         del hvs
         del gvfa_model
         # del full_ev_ds
 
-        print("[LOG] - Classification.")
+        
 
-        # clf = SVC(kernel="rbf", C=0.1, gamma=0.9,degree=6)
-        pipe_lr = Pipeline([
-            # scale each feature (especially important for high-dim hypervectors)
-            ("scaler", StandardScaler(with_mean=False)),
-            # multinomial logistic regression via 'saga' or 'lbfgs'
-            ("lr", LogisticRegression(
-                multi_class="multinomial",
-                max_iter=5000,
-                tol=1e-4
-            ))
-        ])
+        
 
-        param_grid = {
-            "lr__C": [0.01, 0.1, 1, 10],
-            "lr__penalty": ["l2"],  # saga also supports 'l1' or 'elasticnet' if you add l1_ratio
-            "lr__solver": ["lbfgs", "saga"],
-            "lr__class_weight": [None, "balanced"]
-        }
-
-        grid = GridSearchCV(
-            pipe_lr,
-            param_grid=param_grid,
-            cv=5,  # 5-fold stratified by default for classification
-            scoring="accuracy",
-            n_jobs=-1,
-            verbose=1
-        )
-        grid.fit(X_train_100, Y_train_100)
-
-        print(grid.best_params_)
-        print(grid.best_score_)
-        print(grid.param_grid)
-
-        print("----100------")
-        print(f"Train accuracy: {accuracy_score(Y_train_100, grid.predict(X_train_100)) * 100:.2f}%")
-        print(f"Test  accuracy: {accuracy_score(Y_test_100, grid.predict(X_test_100)) * 100:.2f}%")
-
-        print("----50------")
-        print(f"Test  accuracy: {accuracy_score(y_test_50_10, grid.predict(X_test_50)) * 100:.2f}%")
-
-        print("----10------")
-        print(f"Test  accuracy: {accuracy_score(y_test_50_10, grid.predict(X_test_10)) * 100:.2f}%")
-
-        print("[LOG]- NUM_OF_GRAPH_EVENTS:", NUM_OF_GRAPH_EVENTS, " | DATASET:", DATASET,
-              " | NORMALIZE_FEAT:", NORMALIZE_FEAT,
-              " | R:", R, " | D_MAX: ", D_MAX, " | NOICE_REMOVED: ", NOICE_REMOVED,
-              " | NR_BIN_XY_SIZE: ", NR_BIN_XY_SIZE, " | NR_TIME_BIN_SIZE: ", NR_TIME_BIN_SIZE,
-              " | NR_MINIMUM_EVENTS: ",
-              NR_MINIMUM_EVENTS, " | HV_DIMENTION: ", HV_DIMENTION, " | LAYERS: ", LAYERS, " | DELTA: ", DELTA,
-              " | EQUATION: ", EQUATION, )
-
-        # del clf
+        del clf
 
 
 if __name__ == "__main__":
