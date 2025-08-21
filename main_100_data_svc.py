@@ -149,48 +149,21 @@ def main(normalized_feat, num_of_graph_events):
         X_test_50 = scaler.fit_transform(X_test_50)
         X_test_10 = scaler.fit_transform(X_test_10)
         print("Start Classification")
-        CS = [0.05, 1, 3 ]
-        iterations = [120, 200, 500, 800]
+        CS = [ 1, 3, 5]
         for c in CS:
-            for iters in iterations:
-                print("C = ", c)
-                clf = LogisticRegression(
-                    C=c,
-                    solver='saga',       # handles high-dimensional sparse data
-                    penalty='l2',        # ridge regularization
-                    n_jobs=-1,           # parallelize over cores
-                    max_iter=iters,
-                    random_state=42
-                )
+            clf = SVC(kernel="rbf", C=c, gamma='scale', class_weight="balanced")
 
-                clf.fit(X_train_100, Y_train_100)
+            clf.fit(X_train_100, Y_train_100)
 
-                tr_acc = f"{accuracy_score(Y_train_100, clf.predict(X_train_100)) * 100:.2f}%"
-                ts_100 = f"{accuracy_score(Y_test_100, clf.predict(X_test_100)) * 100:.2f}%"
-                ts_100_ = f"{accuracy_score(Y_test_100, clf.predict(X_test_100_)) * 100:.2f}%"
-                ts_50 =  f"{accuracy_score(y_test_50, clf.predict(X_test_50)) * 100:.2f}%"
-                ts_10 = f"{accuracy_score(y_test_10, clf.predict(X_test_10)) * 100:.2f}%"
+            tr_acc = f"{accuracy_score(Y_train_100, clf.predict(X_train_100)) * 100:.2f}%"
+            ts_100 = f"{accuracy_score(Y_test_100, clf.predict(X_test_100)) * 100:.2f}%"
+            ts_100_ = f"{accuracy_score(Y_test_100, clf.predict(X_test_100_)) * 100:.2f}%"
+            ts_50 =  f"{accuracy_score(y_test_50, clf.predict(X_test_50)) * 100:.2f}%"
+            ts_10 = f"{accuracy_score(y_test_10, clf.predict(X_test_10)) * 100:.2f}%"
 
-                print(f"NMNST-lgst {HV_DIMENTION}, {c}, {tr_acc}, {ts_100}, {ts_100_}, {ts_50}, {ts_10}")
+            print(f"NMNST-SVC {HV_DIMENTION}, {c}, {tr_acc}, {ts_100}, {ts_100_}, {ts_50}, {ts_10}")
 
-                # print(f"----100------ C = {c}  iterations = {iters}   Dimention = {HV_DIMENTION}")
-                # print(f"Train accuracy: {accuracy_score(Y_train_100, clf.predict(X_train_100)) * 100:.2f}%")
-                # print(f"Test  accuracy: {accuracy_score(Y_test_100, clf.predict(X_test_100)) * 100:.2f}%")
-
-                # print("----50------")
-                # print(f"Test  accuracy: {accuracy_score(y_test_50, clf.predict(X_test_50)) * 100:.2f}%")
-
-                # print("----10------")
-                # print(f"Test  accuracy: {accuracy_score(y_test_10, clf.predict(X_test_10)) * 100:.2f}%")
-
-                # print("[LOG]- NUM_OF_GRAPH_EVENTS:", NUM_OF_GRAPH_EVENTS, " | DATASET:", DATASET,
-                #     " | NORMALIZE_FEAT:", NORMALIZE_FEAT,
-                #     " | R:", R, " | D_MAX: ", D_MAX, " | NOICE_REMOVED: ", NOICE_REMOVED,
-                #     " | NR_BIN_XY_SIZE: ", NR_BIN_XY_SIZE, " | NR_TIME_BIN_SIZE: ", NR_TIME_BIN_SIZE,
-                #     " | NR_MINIMUM_EVENTS: ",
-                #     NR_MINIMUM_EVENTS, " | HV_DIMENTION: ", HV_DIMENTION, " | LAYERS: ", LAYERS, " | DELTA: ", DELTA,
-                #     " | EQUATION: ", EQUATION, )
-                del clf
+            del clf
         
         del gvfa_model
         del cb
