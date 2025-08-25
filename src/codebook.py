@@ -14,7 +14,7 @@ class CodeBook:
                  y_max: int = 35,
                  t_min: int = 0,
                  t_max: int = 10_00_000,
-                 t_step: int = 1000
+                 t_step: int = 100
                 ):
         self.dim       = dim
         self.gen = torch.Generator().manual_seed(seed)

@@ -24,6 +24,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.svm import LinearSVC
 from sklearn.svm  import SVC
 from sklearn.model_selection import StratifiedGroupKFold
+import time
 
 
 def main(normalized_feat, num_of_graph_events):
@@ -78,29 +79,12 @@ def main(normalized_feat, num_of_graph_events):
     ######################################################################
     print("[LOG] - Making class objects.")
 
-    MNISTGraph_model_train_100 = NMNISTGraphDataset(tonic_raw_dataset=ds_train, num_of_graph_events=NUM_OF_GRAPH_EVENTS,
-                                                    R=R, Dmax=D_MAX,
-                                                    noise_remove=NOICE_REMOVED, normalized_feat=NORMALIZE_FEAT,
-                                                    nr_bin_xy_size=NR_BIN_XY_SIZE, nr_minimum_events=NR_MINIMUM_EVENTS,
-                                                    nr_time_bin_size=NR_TIME_BIN_SIZE)
 
     MNISTGraph_model_test_100 = NMNISTGraphDataset(tonic_raw_dataset=ds_test, num_of_graph_events=NUM_OF_GRAPH_EVENTS,
                                                    R=R, Dmax=D_MAX,
                                                    noise_remove=NOICE_REMOVED, normalized_feat=NORMALIZE_FEAT,
                                                    nr_bin_xy_size=NR_BIN_XY_SIZE, nr_minimum_events=NR_MINIMUM_EVENTS,
                                                    nr_time_bin_size=NR_TIME_BIN_SIZE)
-
-    MNISTGraph_model_test_50 = NMNISTGraphDataset(tonic_raw_dataset=ds_test, num_of_graph_events=50,
-                                                  R=R, Dmax=D_MAX,
-                                                  noise_remove=NOICE_REMOVED, normalized_feat=NORMALIZE_FEAT,
-                                                  nr_bin_xy_size=NR_BIN_XY_SIZE, nr_minimum_events=NR_MINIMUM_EVENTS,
-                                                  nr_time_bin_size=NR_TIME_BIN_SIZE)
-
-    MNISTGraph_model_test_10 = NMNISTGraphDataset(tonic_raw_dataset=ds_test, num_of_graph_events=10,
-                                                  R=R, Dmax=D_MAX,
-                                                  noise_remove=NOICE_REMOVED, normalized_feat=NORMALIZE_FEAT,
-                                                  nr_bin_xy_size=NR_BIN_XY_SIZE, nr_minimum_events=NR_MINIMUM_EVENTS,
-                                                  nr_time_bin_size=NR_TIME_BIN_SIZE)
     
     HV_Dimensions = [5000, 10000]
     print("Start For loop")
@@ -112,70 +96,16 @@ def main(normalized_feat, num_of_graph_events):
         hvs = HVs(codebook=cb, gvfa_model=gvfa_model)
 
         X_train_100, X_test_100, X_test_50, X_test_10, Y_train_100, Y_test_100, y_test_50, y_test_10 = [], [], [], [], [], [], [], []
-        for i in range(len(ds_train)):
-            # print(i)
-            g = MNISTGraph_model_train_100.get(i)
-            x, y = hvs.make_hvs(graph=g)
-            X_train_100.append(x)
-            Y_train_100.append(y)
+        times=[]
         for i in range(len(ds_test)):
             # print(i)
+            t0=time.perf_counter_ns()
             g = MNISTGraph_model_test_100.get(i)
             x, y = hvs.make_hvs(graph=g)
-            X_test_100.append(x)
-            Y_test_100.append(y)
+            t1=time.perf_counter_ns()
+            times.append((t1-t0)/1e6)
 
-        for i in range(len(ds_test)):
-            # print(i)
-            g_50 = MNISTGraph_model_test_50.get(i)
-            g_10 = MNISTGraph_model_test_10.get(i)
-
-            # print(g)
-
-            x_50, y_50 = hvs.make_hvs(graph=g_50)
-            x_10, y_10 = hvs.make_hvs(graph=g_10)
-
-            X_test_50.append(x_50)
-            X_test_10.append(x_10)
-            y_test_50.append(y_50)
-            y_test_10.append(y_10)
-
-
-        scaler = StandardScaler()
-        X_train_100 = scaler.fit_transform(X_train_100)
-        X_test_100 = scaler.transform(X_test_100)
-        X_test_100_ = scaler.fit_transform(X_test_100)
-        X_test_50 = scaler.fit_transform(X_test_50)
-        X_test_10 = scaler.fit_transform(X_test_10)
-        print("Start Classification")
-        CS = [ 1, 3, 5]
-        for c in CS:
-            clf = SVC(kernel="rbf", C=c, gamma='scale', class_weight="balanced")
-
-            clf.fit(X_train_100, Y_train_100)
-
-            tr_acc = f"{accuracy_score(Y_train_100, clf.predict(X_train_100)) * 100:.2f}%"
-            ts_100 = f"{accuracy_score(Y_test_100, clf.predict(X_test_100)) * 100:.2f}%"
-            ts_100_ = f"{accuracy_score(Y_test_100, clf.predict(X_test_100_)) * 100:.2f}%"
-            ts_50 =  f"{accuracy_score(y_test_50, clf.predict(X_test_50)) * 100:.2f}%"
-            ts_10 = f"{accuracy_score(y_test_10, clf.predict(X_test_10)) * 100:.2f}%"
-
-            print(f"NMNST-SVC {HV_DIMENTION}, {c}, {tr_acc}, {ts_100}, {ts_100_}, {ts_50}, {ts_10}")
-
-            del clf
-        
-        del gvfa_model
-        del cb
-        del hvs
-        del X_train_100
-        del X_test_100
-        del X_test_50
-        del X_test_10
-        del Y_train_100
-        del Y_test_100
-        del y_test_50
-        del y_test_10
-        
+        print("transform time : ", float(np.average(times)))
 
 
 if __name__ == "__main__":
