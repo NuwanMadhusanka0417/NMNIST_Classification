@@ -24,6 +24,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.svm import LinearSVC
 from sklearn.svm  import SVC
 from sklearn.model_selection import StratifiedGroupKFold
+from sklearn.preprocessing import StandardScaler, Normalizer
 
 
 def main(normalized_feat, num_of_graph_events):
@@ -61,20 +62,20 @@ def main(normalized_feat, num_of_graph_events):
 
     ###################################################################
 
-    # indices = np.arange(len(full_ev_ds))
-    # labels  = [full_ev_ds[i][1] for i in indices]
-    # train_idx, test_idx = train_test_split(
-    #     indices,
-    #     test_size=0.2,
-    #     random_state=42,
-    #     shuffle=True,
-    #     stratify=labels
-    # )
+    indices = np.arange(len(full_ev_ds))
+    labels  = [full_ev_ds[i][1] for i in indices]
+    train_idx, test_idx = train_test_split(
+        indices,
+        test_size=0.2,
+        random_state=42,
+        shuffle=True,
+        stratify=labels
+    )
 
-    # ds_train = Subset(full_ev_ds, train_idx.tolist())
-    # ds_test  = Subset(full_ev_ds, test_idx.tolist())
+    ds_train = Subset(full_ev_ds, train_idx.tolist())
+    ds_test  = Subset(full_ev_ds, test_idx.tolist())
 
-    ds_train, ds_test = train_test_split(full_ev_ds, test_size=0.2, random_state=10, shuffle=True)   
+    # ds_train, ds_test = train_test_split(full_ev_ds, test_size=0.2, random_state=10, shuffle=True)   
     ######################################################################
     print("[LOG] - Making class objects.")
 
@@ -102,7 +103,7 @@ def main(normalized_feat, num_of_graph_events):
                                                   nr_bin_xy_size=NR_BIN_XY_SIZE, nr_minimum_events=NR_MINIMUM_EVENTS,
                                                   nr_time_bin_size=NR_TIME_BIN_SIZE)
     
-    HV_Dimensions = [5000, 10000]
+    HV_Dimensions = [5000, 10000, 15000]
     print("Start For loop")
     for HV_DIMENTION in HV_Dimensions:
 
@@ -142,12 +143,19 @@ def main(normalized_feat, num_of_graph_events):
             y_test_10.append(y_10)
 
 
-        scaler = StandardScaler()
-        X_train_100 = scaler.fit_transform(X_train_100)
-        X_test_100 = scaler.transform(X_test_100)
-        X_test_100_ = scaler.fit_transform(X_test_100)
-        X_test_50 = scaler.fit_transform(X_test_50)
-        X_test_10 = scaler.fit_transform(X_test_10)
+        # scaler = StandardScaler()
+        # X_train_100 = scaler.fit_transform(X_train_100)
+        # X_test_100 = scaler.transform(X_test_100)
+        # X_test_100_ = scaler.fit_transform(X_test_100)
+        # X_test_50 = scaler.fit_transform(X_test_50)
+        # X_test_10 = scaler.fit_transform(X_test_10)
+
+        norm = Normalizer(norm='l2')
+        X_train_100 = norm.transform(X_train_100)
+        X_test_100  = norm.transform(X_test_100)
+        X_test_50   = norm.transform(X_test_50)
+        X_test_10   = norm.transform(X_test_10)
+
         print("Start Classification")
         CS = [0.05, 1, 3 ]
         iterations = [120, 200, 500, 800]
@@ -167,11 +175,11 @@ def main(normalized_feat, num_of_graph_events):
 
                 tr_acc = f"{accuracy_score(Y_train_100, clf.predict(X_train_100)) * 100:.2f}%"
                 ts_100 = f"{accuracy_score(Y_test_100, clf.predict(X_test_100)) * 100:.2f}%"
-                ts_100_ = f"{accuracy_score(Y_test_100, clf.predict(X_test_100_)) * 100:.2f}%"
+                # ts_100_ = f"{accuracy_score(Y_test_100, clf.predict(X_test_100_)) * 100:.2f}%"
                 ts_50 =  f"{accuracy_score(y_test_50, clf.predict(X_test_50)) * 100:.2f}%"
                 ts_10 = f"{accuracy_score(y_test_10, clf.predict(X_test_10)) * 100:.2f}%"
 
-                print(f"NMNST-lgst {HV_DIMENTION}, {c}, {tr_acc}, {ts_100}, {ts_100_}, {ts_50}, {ts_10}")
+                print(f"NMNST-lgst {HV_DIMENTION}, {c}, {tr_acc}, {ts_100}, {ts_50}, {ts_10}")
 
                 # print(f"----100------ C = {c}  iterations = {iters}   Dimention = {HV_DIMENTION}")
                 # print(f"Train accuracy: {accuracy_score(Y_train_100, clf.predict(X_train_100)) * 100:.2f}%")
