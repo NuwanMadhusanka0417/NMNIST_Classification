@@ -96,23 +96,28 @@ def main():
         del gvfa_model
         # del full_ev_ds
 
-        el = [0.1, 0.5, 1, 3]
+        el = [100, 300, 500, 1000]
         for elm in el:
             print(elm)
             print("[LOG] - Classification.")
 
-            clf = SVC(kernel="rbf", C=elm,class_weight="balanced", gamma='scale')  # best in 100 - c = 3, weight = NOne, gamma = scale SVC(kernel="rbf", C=0.1, gamma=0.9,degree=6)
-    
+            clf = LogisticRegression(
+                solver='saga',  # handles high-dim sparse data efficiently
+                penalty='l2',  # ridge regularisation
+                max_iter=elm,  # increase if it doesn’t converge
+                n_jobs=-1,  # parallelise over cores
+                random_state=42
+                ) 
             clf.fit(X_train, y_train)
 
             print(f"Train accuracy: {accuracy_score(y_train, clf.predict(X_train)) * 100:.2f}%")
             print(f"Test  accuracy: {accuracy_score(y_test, clf.predict(X_test)) * 100:.2f}%")
 
-            print("[LOG]- NUM_OF_GRAPH_EVENTS:", NUM_OF_GRAPH_EVENTS, " | DATASET:", DATASET,
-                " | NORMALIZE_FEAT:", NORMALIZE_FEAT,
-                " | R:", R, " | D_MAX: ", D_MAX, " | NOICE_REMOVED: ", NOICE_REMOVED,
-                " | NR_BIN_XY_SIZE: ", NR_BIN_XY_SIZE, " | NR_TIME_BIN_SIZE: ", NR_TIME_BIN_SIZE, " | NR_MINIMUM_EVENTS: ",
-                NR_MINIMUM_EVENTS, " | HV_DIMENTION: ", HV_DIMENTION," | LAYERS: ", LAYERS," | DELTA: ", DELTA," | EQUATION: ", EQUATION,)
+            # print("[LOG]- NUM_OF_GRAPH_EVENTS:", NUM_OF_GRAPH_EVENTS, " | DATASET:", DATASET,
+            #     " | NORMALIZE_FEAT:", NORMALIZE_FEAT,
+            #     " | R:", R, " | D_MAX: ", D_MAX, " | NOICE_REMOVED: ", NOICE_REMOVED,
+            #     " | NR_BIN_XY_SIZE: ", NR_BIN_XY_SIZE, " | NR_TIME_BIN_SIZE: ", NR_TIME_BIN_SIZE, " | NR_MINIMUM_EVENTS: ",
+            #     NR_MINIMUM_EVENTS, " | HV_DIMENTION: ", HV_DIMENTION," | LAYERS: ", LAYERS," | DELTA: ", DELTA," | EQUATION: ", EQUATION,)
 
             del clf
 
