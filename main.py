@@ -18,13 +18,13 @@ def main():
 
     print("[LOG] - parameter initialization.")
     # GRAPH parameters
-    DATA_NAME = "SNKTH"  # NCARS, NMNIST
+    DATA_NAME = "ASLDVS"  # NCARS, NMNIST
     DATA_PATH = "data"
     DATASET = "full"  # full / test      size of dataset loading for training and testing
     NORMALIZE_FEAT = False
     NUM_OF_GRAPH_EVENTS = 100  # None, 10, 50, 100. etc
 
-    if DATA_NAME == "SNKTH":
+    if DATA_NAME == "ASLDVS":
         X_MAX = 360
         Y_MAX = 360
         T_MAX = 1_000_000
@@ -50,7 +50,14 @@ def main():
     print("[LOG] - Loading events")
     # full_ev_ds = ev_loader(root=DATA_PATH, dataset=DATASET)
     ds = ev_loader(root=DATA_PATH, dataset=DATASET, data_name=DATA_NAME)
+
+    ev, l = ds[0]
+
+    print(l)
+    print(ev)
     ds_train, ds_test = train_test_split(ds, test_size=0.2, random_state=42, shuffle=True)
+
+    
 
     print("[LOG] - Making class objects.")
     MNISTGraph_model_train_100 = NMNISTGraphDataset(tonic_raw_dataset=ds_train, num_of_graph_events=NUM_OF_GRAPH_EVENTS,
@@ -100,9 +107,9 @@ def main():
             X_test_100.append(x)
             Y_test_100.append(y)
 
-        # scaler = StandardScaler()
-        # X_train = scaler.fit_transform(X_train_)
-        # X_test = scaler.fit_transform(X_test_)
+        scaler = StandardScaler()
+        X_train_100 = scaler.fit_transform(X_train_100)
+        X_test_100 = scaler.fit_transform(X_test_100)
 
         for i in range(len(ds_test)):
             # print(i)
@@ -118,8 +125,8 @@ def main():
             X_test_10.append(x_10)
             y_test_50_10.append(y)
 
-        # X_test_50 = scaler.fit_transform(X_test_50_)
-        # X_test_10 = scaler.fit_transform(X_test_10_)
+        X_test_50 = scaler.fit_transform(X_test_50)
+        X_test_10 = scaler.fit_transform(X_test_10)
 
         del cb
         del hvs
@@ -129,7 +136,7 @@ def main():
         print("[LOG] - Classification.")
 
         # clf = SVC(kernel="rbf", C=0.1, gamma=0.9,degree=6)
-        pipe_lr = Pipeline([
+        '''pipe_lr = Pipeline([
             # scale each feature (especially important for high-dim hypervectors)
             ("scaler", StandardScaler(with_mean=False)),
             # multinomial logistic regression via 'saga' or 'lbfgs'
@@ -159,25 +166,40 @@ def main():
 
         print(grid.best_params_)
         print(grid.best_score_)
-        print(grid.param_grid)
+        print(grid.param_grid)'''
+        el = [1, 3,5,7]
+        for elm in el:
+            print(elm)
+            print("[LOG] - Classification.")
 
-        print("----100------")
-        print(f"Train accuracy: {accuracy_score(Y_train_100, grid.predict(X_train_100)) * 100:.2f}%")
-        print(f"Test  accuracy: {accuracy_score(Y_test_100, grid.predict(X_test_100)) * 100:.2f}%")
+            clf = SVC(kernel="rbf", C=elm,class_weight="balanced", gamma='scale') 
 
-        print("----50------")
-        print(f"Test  accuracy: {accuracy_score(y_test_50_10, grid.predict(X_test_50)) * 100:.2f}%")
+            clf.fit(X_train_100, Y_train_100)
+            
+            tr_acc = f"{accuracy_score(Y_train_100, clf.predict(X_train_100)) * 100:.2f}%"
+            ts_100 = f"{accuracy_score(Y_test_100, clf.predict(X_test_100)) * 100:.2f}%"
+            ts_50 =  f"{accuracy_score(y_test_50_10, clf.predict(X_test_50)) * 100:.2f}%"
+            ts_10 = f"{accuracy_score(y_test_50_10, clf.predict(X_test_10)) * 100:.2f}%"
 
-        print("----10------")
-        print(f"Test  accuracy: {accuracy_score(y_test_50_10, grid.predict(X_test_10)) * 100:.2f}%")
+            print(f"{HV_DIMENTION}, {elm}, {tr_acc}, {ts_100}, {ts_50}, {ts_10}")
 
-        print("[LOG]- NUM_OF_GRAPH_EVENTS:", NUM_OF_GRAPH_EVENTS, " | DATASET:", DATASET,
-              " | NORMALIZE_FEAT:", NORMALIZE_FEAT,
-              " | R:", R, " | D_MAX: ", D_MAX, " | NOICE_REMOVED: ", NOICE_REMOVED,
-              " | NR_BIN_XY_SIZE: ", NR_BIN_XY_SIZE, " | NR_TIME_BIN_SIZE: ", NR_TIME_BIN_SIZE,
-              " | NR_MINIMUM_EVENTS: ",
-              NR_MINIMUM_EVENTS, " | HV_DIMENTION: ", HV_DIMENTION, " | LAYERS: ", LAYERS, " | DELTA: ", DELTA,
-              " | EQUATION: ", EQUATION, )
+        # print("----100------")
+        # print(f"Train accuracy: {accuracy_score(Y_train_100, grid.predict(X_train_100)) * 100:.2f}%")
+        # print(f"Test  accuracy: {accuracy_score(Y_test_100, grid.predict(X_test_100)) * 100:.2f}%")
+
+        # print("----50------")
+        # print(f"Test  accuracy: {accuracy_score(y_test_50_10, grid.predict(X_test_50)) * 100:.2f}%")
+
+        # print("----10------")
+        # print(f"Test  accuracy: {accuracy_score(y_test_50_10, grid.predict(X_test_10)) * 100:.2f}%")
+
+        # print("[LOG]- NUM_OF_GRAPH_EVENTS:", NUM_OF_GRAPH_EVENTS, " | DATASET:", DATASET,
+        #       " | NORMALIZE_FEAT:", NORMALIZE_FEAT,
+        #       " | R:", R, " | D_MAX: ", D_MAX, " | NOICE_REMOVED: ", NOICE_REMOVED,
+        #       " | NR_BIN_XY_SIZE: ", NR_BIN_XY_SIZE, " | NR_TIME_BIN_SIZE: ", NR_TIME_BIN_SIZE,
+        #       " | NR_MINIMUM_EVENTS: ",
+        #       NR_MINIMUM_EVENTS, " | HV_DIMENTION: ", HV_DIMENTION, " | LAYERS: ", LAYERS, " | DELTA: ", DELTA,
+        #       " | EQUATION: ", EQUATION, )
 
         # del clf
 

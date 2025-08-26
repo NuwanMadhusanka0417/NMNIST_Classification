@@ -5,10 +5,11 @@ import tonic.transforms as transforms
 from torch.utils.data import ConcatDataset
 from src.ncars_data_loader import NCARS
 from src.snkth_data_loader import SNKTH
+from src.asldvs_data_loader import ASLDVS
 def ev_loader(data_name, root:str = 'data', dataset ="full"):
 
-    if data_name == "SNKTH":
-        dataset = SNKTH(root="data/SNKTH")
+    if data_name == "ASLDVS":
+        dataset = ASLDVS(root="data/ASLDVS")
         return dataset
 
 
@@ -38,3 +39,6 @@ def graph_loader(normalized_feat = False, num_of_graph_events = None):
           NR_MINIMUM_EVENTS)
     print("LOG - loaded graph: ", path_to_save)
     return torch.load(path_to_save)
+
+
+
