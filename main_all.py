@@ -22,7 +22,7 @@ def main():
     DATA_PATH = "data"
     DATASET = "full"  # full / test      size of dataset loading for training and testing
     NORMALIZE_FEAT = False
-    NUM_OF_GRAPH_EVENTS = 100  # None, 10, 50, 100. etc
+    NUM_OF_GRAPH_EVENTS = None  # None, 10, 50, 100. etc
 
     if DATA_NAME == "ASLDVS":
         X_MAX = 360
@@ -60,31 +60,19 @@ def main():
     
 
     print("[LOG] - Making class objects.")
-    MNISTGraph_model_train_100 = NMNISTGraphDataset(tonic_raw_dataset=ds_train, num_of_graph_events=NUM_OF_GRAPH_EVENTS,
+    MNISTGraph_model_train = NMNISTGraphDataset(tonic_raw_dataset=ds_train, num_of_graph_events=NUM_OF_GRAPH_EVENTS,
                                                     R=R, Dmax=D_MAX,
                                                     noise_remove=NOICE_REMOVED, normalized_feat=NORMALIZE_FEAT,
                                                     nr_bin_xy_size=NR_BIN_XY_SIZE, nr_minimum_events=NR_MINIMUM_EVENTS,
                                                     nr_time_bin_size=NR_TIME_BIN_SIZE)
 
-    MNISTGraph_model_test_100 = NMNISTGraphDataset(tonic_raw_dataset=ds_test, num_of_graph_events=NUM_OF_GRAPH_EVENTS,
+    MNISTGraph_model_test = NMNISTGraphDataset(tonic_raw_dataset=ds_test, num_of_graph_events=NUM_OF_GRAPH_EVENTS,
                                                    R=R, Dmax=D_MAX,
                                                    noise_remove=NOICE_REMOVED, normalized_feat=NORMALIZE_FEAT,
                                                    nr_bin_xy_size=NR_BIN_XY_SIZE, nr_minimum_events=NR_MINIMUM_EVENTS,
                                                    nr_time_bin_size=NR_TIME_BIN_SIZE)
 
-    MNISTGraph_model_test_50 = NMNISTGraphDataset(tonic_raw_dataset=ds_test, num_of_graph_events=50,
-                                                  R=R, Dmax=D_MAX,
-                                                  noise_remove=NOICE_REMOVED, normalized_feat=NORMALIZE_FEAT,
-                                                  nr_bin_xy_size=NR_BIN_XY_SIZE, nr_minimum_events=NR_MINIMUM_EVENTS,
-                                                  nr_time_bin_size=NR_TIME_BIN_SIZE)
-
-    MNISTGraph_model_test_10 = NMNISTGraphDataset(tonic_raw_dataset=ds_test, num_of_graph_events=10,
-                                                  R=R, Dmax=D_MAX,
-                                                  noise_remove=NOICE_REMOVED, normalized_feat=NORMALIZE_FEAT,
-                                                  nr_bin_xy_size=NR_BIN_XY_SIZE, nr_minimum_events=NR_MINIMUM_EVENTS,
-                                                  nr_time_bin_size=NR_TIME_BIN_SIZE)
-
-    HV_Dimensions = [5000, 7000]
+    HV_Dimensions = [1000, 5000, 7000]
     for item in HV_Dimensions:
         HV_DIMENTION = item
         gvfa_model = GraphCNN(input_dim=HV_DIMENTION, num_layers=LAYERS, delta=DELTA, graph_pooling_type="sum",
@@ -92,43 +80,28 @@ def main():
         cb = CodeBook(dim=HV_DIMENTION, x_max=X_MAX, y_max=Y_MAX, t_max=T_MAX, t_step=T_STEP)
         hvs = HVs(codebook=cb, gvfa_model=gvfa_model)
 
-        X_train_100, X_test_100, X_test_50, X_test_10, Y_train_100, Y_test_100, y_test_50_10 = [], [], [], [], [], [], []
+        X_train, X_test, Y_train, Y_test= [], [], [], []
         print("[LOG] - Loading graph and converting to HVs.")
         for i in range(len(ds_train)):
             # print(i)
-            g = MNISTGraph_model_train_100.get(i)
+            g = MNISTGraph_model_train.get(i)
             x, y = hvs.make_hvs(graph=g)
-            X_train_100.append(x)
-            Y_train_100.append(y)
+            X_train.append(x)
+            Y_train.append(y)
         for i in range(len(ds_test)):
             # print(i)
-            g = MNISTGraph_model_test_100.get(i)
+            g = MNISTGraph_model_test.get(i)
             x, y = hvs.make_hvs(graph=g)
-            X_test_100.append(x)
-            Y_test_100.append(y)
+            X_test.append(x)
+            Y_test.append(y)
 
         scaler = StandardScaler()
-        X_train_100 = scaler.fit_transform(X_train_100)
-        X_test_100 = scaler.fit_transform(X_test_100)
+        X_train = scaler.fit_transform(X_train)
+        X_test = scaler.transform(X_test)
 
-        for i in range(len(ds_test)):
-            # print(i)
-            g_50 = MNISTGraph_model_test_50.get(i)
-            g_10 = MNISTGraph_model_test_10.get(i)
 
-            # print(g)
-
-            x_50, y = hvs.make_hvs(graph=g_50)
-            x_10, _ = hvs.make_hvs(graph=g_10)
-
-            X_test_50.append(x_50)
-            X_test_10.append(x_10)
-            y_test_50_10.append(y)
-
-        X_test_50 = scaler.fit_transform(X_test_50)
-        X_test_10 = scaler.fit_transform(X_test_10)
-        print("Train labels = ", sorted(set(X_train_100)))
-        print("Test labels = ", sorted(set(X_test_100)))
+        print("Train labels = ", sorted(set(Y_train)))
+        print("Test labels = ", sorted(set(Y_test)))
         del cb
         del hvs
         del gvfa_model
@@ -136,53 +109,28 @@ def main():
 
         print("[LOG] - Classification.")
 
-        # clf = SVC(kernel="rbf", C=0.1, gamma=0.9,degree=6)
-        '''pipe_lr = Pipeline([
-            # scale each feature (especially important for high-dim hypervectors)
-            ("scaler", StandardScaler(with_mean=False)),
-            # multinomial logistic regression via 'saga' or 'lbfgs'
-            ("lr", LogisticRegression(
-                multi_class="multinomial",
-                max_iter=5000,
-                tol=1e-4
-            ))
-        ])
-
-        param_grid = {
-            "lr__C": [0.01, 0.1, 1, 10],
-            "lr__penalty": ["l2"],  # saga also supports 'l1' or 'elasticnet' if you add l1_ratio
-            "lr__solver": ["lbfgs", "saga"],
-            "lr__class_weight": [None, "balanced"]
-        }
-
-        grid = GridSearchCV(
-            pipe_lr,
-            param_grid=param_grid,
-            cv=5,  # 5-fold stratified by default for classification
-            scoring="accuracy",
-            n_jobs=-1,
-            verbose=1
-        )
-        grid.fit(X_train_100, Y_train_100)
-
-        print(grid.best_params_)
-        print(grid.best_score_)
-        print(grid.param_grid)'''
-        el = [1, 3,5,7, 9, 11]
+        el = [500, 1000, 1500, 2000]
         for elm in el:
             print(elm)
             print("[LOG] - Classification.")
 
-            clf = SVC(kernel="rbf", C=elm,class_weight="balanced", gamma='scale') 
+            clf = LogisticRegression(
+                solver='saga',  # handles high-dim sparse data efficiently
+                penalty='l2',  # ridge regularisation
+                max_iter=elm,  # increase if it doesn’t converge
+                n_jobs=-1,  # parallelise over cores
+                random_state=42
+                ) 
 
-            clf.fit(X_train_100, Y_train_100)
+            clf.fit(X_train, Y_train)
             
-            tr_acc = f"ASLDVS {accuracy_score(Y_train_100, clf.predict(X_train_100)) * 100:.2f}%"
-            ts_100 = f"ASLDVS {accuracy_score(Y_test_100, clf.predict(X_test_100)) * 100:.2f}%"
-            ts_50 =  f"ASLDVS {accuracy_score(y_test_50_10, clf.predict(X_test_50)) * 100:.2f}%"
-            ts_10 = f"ASLDVS {accuracy_score(y_test_50_10, clf.predict(X_test_10)) * 100:.2f}%"
+            tr_acc = f"ASLDVS {accuracy_score(Y_train, clf.predict(X_train)) * 100:.2f}%"
+            ts_100 = f"ASLDVS {accuracy_score(Y_test, clf.predict(X_test)) * 100:.2f}%"
 
-            print(f"{HV_DIMENTION}, {elm}, {tr_acc}, {ts_100}, {ts_50}, {ts_10}")
+            del clf
+    
+
+            print(f"{HV_DIMENTION}, {elm}, {tr_acc}, {ts_100}")
 
         # print("----100------")
         # print(f"Train accuracy: {accuracy_score(Y_train_100, grid.predict(X_train_100)) * 100:.2f}%")

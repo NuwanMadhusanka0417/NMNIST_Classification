@@ -50,13 +50,20 @@ def main():
     print("[LOG] - Loading events")
     # full_ev_ds = ev_loader(root=DATA_PATH, dataset=DATASET)
     ds = ev_loader(root=DATA_PATH, dataset=DATASET, data_name=DATA_NAME)
-    print(ds)
-    ls = []
-    for i in range (50000):
-        _, l = ds[i+70000]
-        ls.append(l)
+    # print(len(ds))
+    # ls = []
+    # for i in range (100000):
+    #     _, l = ds[i]
+    #     ls.append(l)
 
-    print(ls)
+    # print(ls)
+
+    labels = [ds[i][1] for i in range(len(ds))]
+
+    # unique labels (sorted)
+    unique_labels = sorted(set(labels))
+    print("Unique labels:", unique_labels)
+    print("#classes:", len(unique_labels))
 
 
 main()
