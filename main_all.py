@@ -19,7 +19,7 @@ def main():
     print("[LOG] - parameter initialization.")
     # GRAPH parameters
     DATA_NAME = "ASLDVS"  # NCARS, NMNIST
-    DATA_PATH = "data"
+    DATA_PATH = "/scratch/mi23/nk8155/datasets" #"data"
     DATASET = "full"  # full / test      size of dataset loading for training and testing
     NORMALIZE_FEAT = False
     NUM_OF_GRAPH_EVENTS = None  # None, 10, 50, 100. etc
@@ -86,12 +86,14 @@ def main():
             # print(i)
             g = MNISTGraph_model_train.get(i)
             x, y = hvs.make_hvs(graph=g)
+            del g
             X_train.append(x)
             Y_train.append(y)
         for i in range(len(ds_test)):
             # print(i)
             g = MNISTGraph_model_test.get(i)
             x, y = hvs.make_hvs(graph=g)
+            del g
             X_test.append(x)
             Y_test.append(y)
 
@@ -100,8 +102,8 @@ def main():
         X_test = scaler.transform(X_test)
 
 
-        print("Train labels = ", sorted(set(Y_train)))
-        print("Test labels = ", sorted(set(Y_test)))
+        # print("Train labels = ", sorted(set(Y_train)))
+        # print("Test labels = ", sorted(set(Y_test)))
         del cb
         del hvs
         del gvfa_model
@@ -131,6 +133,10 @@ def main():
     
 
             print(f"{HV_DIMENTION}, {elm}, {tr_acc}, {ts_100}")
+        del X_train
+        del X_test
+        del Y_train
+        del Y_test
 
         # print("----100------")
         # print(f"Train accuracy: {accuracy_score(Y_train_100, grid.predict(X_train_100)) * 100:.2f}%")
@@ -150,7 +156,6 @@ def main():
         #       NR_MINIMUM_EVENTS, " | HV_DIMENTION: ", HV_DIMENTION, " | LAYERS: ", LAYERS, " | DELTA: ", DELTA,
         #       " | EQUATION: ", EQUATION, )
 
-        # del clf
 
 
 if __name__ == "__main__":

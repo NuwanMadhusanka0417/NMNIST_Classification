@@ -9,7 +9,8 @@ from src.asldvs_data_loader import ASLDVS
 def ev_loader(data_name, root:str = 'data', dataset ="full"):
 
     if data_name == "ASLDVS":
-        dataset = ASLDVS(root="data/ASLDVS")
+        root = root + "/ASLDVS"
+        dataset = ASLDVS(root)
         return dataset
 
 

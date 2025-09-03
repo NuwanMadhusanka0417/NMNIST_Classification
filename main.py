@@ -11,6 +11,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import accuracy_score
+import numpy as np
 
 
 def main():
@@ -19,7 +20,7 @@ def main():
     print("[LOG] - parameter initialization.")
     # GRAPH parameters
     DATA_NAME = "ASLDVS"  # NCARS, NMNIST
-    DATA_PATH = "data"
+    DATA_PATH = "/scratch/mi23/nk8155/datasets" #"data"
     DATASET = "full"  # full / test      size of dataset loading for training and testing
     NORMALIZE_FEAT = False
     NUM_OF_GRAPH_EVENTS = 100  # None, 10, 50, 100. etc
@@ -84,7 +85,7 @@ def main():
                                                   nr_bin_xy_size=NR_BIN_XY_SIZE, nr_minimum_events=NR_MINIMUM_EVENTS,
                                                   nr_time_bin_size=NR_TIME_BIN_SIZE)
 
-    HV_Dimensions = [5000, 7000]
+    HV_Dimensions = [2000, 5000, 7000]
     for item in HV_Dimensions:
         HV_DIMENTION = item
         gvfa_model = GraphCNN(input_dim=HV_DIMENTION, num_layers=LAYERS, delta=DELTA, graph_pooling_type="sum",
@@ -95,15 +96,16 @@ def main():
         X_train_100, X_test_100, X_test_50, X_test_10, Y_train_100, Y_test_100, y_test_50_10 = [], [], [], [], [], [], []
         print("[LOG] - Loading graph and converting to HVs.")
         for i in range(len(ds_train)):
-            # print(i)
             g = MNISTGraph_model_train_100.get(i)
             x, y = hvs.make_hvs(graph=g)
+            del g
             X_train_100.append(x)
             Y_train_100.append(y)
+            
         for i in range(len(ds_test)):
-            # print(i)
             g = MNISTGraph_model_test_100.get(i)
             x, y = hvs.make_hvs(graph=g)
+            del g
             X_test_100.append(x)
             Y_test_100.append(y)
 
@@ -120,6 +122,8 @@ def main():
 
             x_50, y = hvs.make_hvs(graph=g_50)
             x_10, _ = hvs.make_hvs(graph=g_10)
+            del g_50
+            del x_10
 
             X_test_50.append(x_50)
             X_test_10.append(x_10)
@@ -127,48 +131,16 @@ def main():
 
         X_test_50 = scaler.fit_transform(X_test_50)
         X_test_10 = scaler.fit_transform(X_test_10)
-        print("Train labels = ", sorted(set(X_train_100)))
-        print("Test labels = ", sorted(set(X_test_100)))
+        # print("Train labels =", sorted(np.unique(np.asarray(Y_train_100)).tolist()))
+        # print("Test  labels =", sorted(np.unique(np.asarray(Y_test_100)).tolist()))
         del cb
         del hvs
         del gvfa_model
         # del full_ev_ds
 
         print("[LOG] - Classification.")
-
-        # clf = SVC(kernel="rbf", C=0.1, gamma=0.9,degree=6)
-        '''pipe_lr = Pipeline([
-            # scale each feature (especially important for high-dim hypervectors)
-            ("scaler", StandardScaler(with_mean=False)),
-            # multinomial logistic regression via 'saga' or 'lbfgs'
-            ("lr", LogisticRegression(
-                multi_class="multinomial",
-                max_iter=5000,
-                tol=1e-4
-            ))
-        ])
-
-        param_grid = {
-            "lr__C": [0.01, 0.1, 1, 10],
-            "lr__penalty": ["l2"],  # saga also supports 'l1' or 'elasticnet' if you add l1_ratio
-            "lr__solver": ["lbfgs", "saga"],
-            "lr__class_weight": [None, "balanced"]
-        }
-
-        grid = GridSearchCV(
-            pipe_lr,
-            param_grid=param_grid,
-            cv=5,  # 5-fold stratified by default for classification
-            scoring="accuracy",
-            n_jobs=-1,
-            verbose=1
-        )
-        grid.fit(X_train_100, Y_train_100)
-
-        print(grid.best_params_)
-        print(grid.best_score_)
-        print(grid.param_grid)'''
-        el = [1, 3,5,7, 9, 11]
+        
+        el = [1, 5, 9, 11]
         for elm in el:
             print(elm)
             print("[LOG] - Classification.")
@@ -183,26 +155,15 @@ def main():
             ts_10 = f"ASLDVS {accuracy_score(y_test_50_10, clf.predict(X_test_10)) * 100:.2f}%"
 
             print(f"{HV_DIMENTION}, {elm}, {tr_acc}, {ts_100}, {ts_50}, {ts_10}")
+            del clf
+        del X_train_100
+        del X_test_100
+        del X_test_50
+        del X_test_10
+        del Y_train_100
+        del Y_test_100
+        del y_test_50_10
 
-        # print("----100------")
-        # print(f"Train accuracy: {accuracy_score(Y_train_100, grid.predict(X_train_100)) * 100:.2f}%")
-        # print(f"Test  accuracy: {accuracy_score(Y_test_100, grid.predict(X_test_100)) * 100:.2f}%")
-
-        # print("----50------")
-        # print(f"Test  accuracy: {accuracy_score(y_test_50_10, grid.predict(X_test_50)) * 100:.2f}%")
-
-        # print("----10------")
-        # print(f"Test  accuracy: {accuracy_score(y_test_50_10, grid.predict(X_test_10)) * 100:.2f}%")
-
-        # print("[LOG]- NUM_OF_GRAPH_EVENTS:", NUM_OF_GRAPH_EVENTS, " | DATASET:", DATASET,
-        #       " | NORMALIZE_FEAT:", NORMALIZE_FEAT,
-        #       " | R:", R, " | D_MAX: ", D_MAX, " | NOICE_REMOVED: ", NOICE_REMOVED,
-        #       " | NR_BIN_XY_SIZE: ", NR_BIN_XY_SIZE, " | NR_TIME_BIN_SIZE: ", NR_TIME_BIN_SIZE,
-        #       " | NR_MINIMUM_EVENTS: ",
-        #       NR_MINIMUM_EVENTS, " | HV_DIMENTION: ", HV_DIMENTION, " | LAYERS: ", LAYERS, " | DELTA: ", DELTA,
-        #       " | EQUATION: ", EQUATION, )
-
-        # del clf
 
 
 if __name__ == "__main__":
