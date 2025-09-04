@@ -1,6 +1,6 @@
 
 from src.graph_to_vec_converter import HVs
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, RidgeClassifierCV
 from src.graph_generation import NMNISTGraphDataset
 from src.loader import ev_loader
 from src.graphcnnVSA_Binding_FULL import GraphCNN
@@ -126,7 +126,7 @@ def main():
         CS = [0.05, 1, 3 ]
         iterations = [100, 200, 500, 800]
         for c in CS:
-            for iters in iterations:
+            '''for iters in iterations:
                 print("C = ", c)
                 clf = LogisticRegression(
                     C=c,
@@ -145,9 +145,11 @@ def main():
                 ts_50 =  f"{accuracy_score(y_test_50_10, clf.predict(X_test_50)) * 100:.2f}%"
                 ts_10 = f"{accuracy_score(y_test_50_10, clf.predict(X_test_10)) * 100:.2f}%"
 
-                print(f"SNKTH-lgst {HV_DIMENTION}, {iters} {c}, {tr_acc}, {ts_100}, {ts_50}, {ts_10}")
+                print(f"SNKTH-lgst {HV_DIMENTION}, {iters} {c}, {tr_acc}, {ts_100}, {ts_50}, {ts_10}")'''
 
-            grid = SVC(kernel="rbf", C=c, gamma='scale', class_weight="balanced")
+            # grid = SVC(kernel="rbf", C=c, gamma='scale', class_weight="balanced")
+            grid = RidgeClassifierCV()
+
 
             grid.fit(X_train_100, Y_train_100)
 
@@ -156,7 +158,7 @@ def main():
             ts_50 =  f"{accuracy_score(y_test_50_10, grid.predict(X_test_50)) * 100:.2f}%"
             ts_10 = f"{accuracy_score(y_test_50_10, grid.predict(X_test_10)) * 100:.2f}%"
 
-            print(f"SNKTH-SVC {HV_DIMENTION}, {c}, {tr_acc}, {ts_100}, {ts_50}, {ts_10}")
+            print(f"SNKTH- RIDGE {HV_DIMENTION}, {c}, {tr_acc}, {ts_100}, {ts_50}, {ts_10}")
 
 
 
@@ -172,7 +174,7 @@ def main():
 
         
 
-        del clf
+        # del clf
 
 
 if __name__ == "__main__":
