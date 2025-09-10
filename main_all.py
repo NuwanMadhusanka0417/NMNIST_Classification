@@ -11,7 +11,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import accuracy_score
-
+import numpy as np
 
 def main():
 
@@ -19,10 +19,10 @@ def main():
     print("[LOG] - parameter initialization.")
     # GRAPH parameters
     DATA_NAME = "ASLDVS"  # NCARS, NMNIST
-    DATA_PATH = "/scratch/mi23/nk8155/datasets" #"data"
+    DATA_PATH = "data"# "/scratch/mi23/nk8155/datasets" #"data"
     DATASET = "full"  # full / test      size of dataset loading for training and testing
     NORMALIZE_FEAT = False
-    NUM_OF_GRAPH_EVENTS = None  # None, 10, 50, 100. etc
+    NUM_OF_GRAPH_EVENTS = 9000  # None, 10, 50, 100. etc
 
     if DATA_NAME == "ASLDVS":
         X_MAX = 360
@@ -83,14 +83,14 @@ def main():
         X_train, X_test, Y_train, Y_test= [], [], [], []
         print("[LOG] - Loading graph and converting to HVs.")
         for i in range(len(ds_train)):
-            # print(i)
+            # print("tr - ",i)
             g = MNISTGraph_model_train.get(i)
             x, y = hvs.make_hvs(graph=g)
             del g
             X_train.append(x)
             Y_train.append(y)
         for i in range(len(ds_test)):
-            # print(i)
+            # print("ts - ",i)
             g = MNISTGraph_model_test.get(i)
             x, y = hvs.make_hvs(graph=g)
             del g
@@ -104,6 +104,8 @@ def main():
 
         # print("Train labels = ", sorted(set(Y_train)))
         # print("Test labels = ", sorted(set(Y_test)))
+        print("Train labels =", sorted(np.unique(np.asarray(Y_train)).tolist()))
+        print("Test  labels =", sorted(np.unique(np.asarray(Y_test)).tolist()))
         del cb
         del hvs
         del gvfa_model
@@ -111,28 +113,29 @@ def main():
 
         print("[LOG] - Classification.")
 
-        el = [500, 1000, 1500, 2000]
+        el = [1, 5, 9]
         for elm in el:
             print(elm)
             print("[LOG] - Classification.")
 
-            clf = LogisticRegression(
-                solver='saga',  # handles high-dim sparse data efficiently
-                penalty='l2',  # ridge regularisation
-                max_iter=elm,  # increase if it doesn’t converge
-                n_jobs=-1,  # parallelise over cores
-                random_state=42
-                ) 
+            # clf = LogisticRegression(
+            #     solver='saga',  # handles high-dim sparse data efficiently
+            #     penalty='l2',  # ridge regularisation
+            #     max_iter=elm,  # increase if it doesn’t converge
+            #     n_jobs=-1,  # parallelise over cores
+            #     random_state=42
+            #     ) 
+            clf = SVC(kernel="rbf", C=elm,class_weight="balanced", gamma='scale') 
 
             clf.fit(X_train, Y_train)
             
-            tr_acc = f"ASLDVS {accuracy_score(Y_train, clf.predict(X_train)) * 100:.2f}%"
-            ts_100 = f"ASLDVS {accuracy_score(Y_test, clf.predict(X_test)) * 100:.2f}%"
+            tr_acc = f" {accuracy_score(Y_train, clf.predict(X_train)) * 100:.2f}%"
+            ts_100 = f" {accuracy_score(Y_test, clf.predict(X_test)) * 100:.2f}%"
 
             del clf
     
 
-            print(f"{HV_DIMENTION}, {elm}, {tr_acc}, {ts_100}")
+            print(f"ASLDVS {HV_DIMENTION}, {elm}, {tr_acc}, {ts_100}")
         del X_train
         del X_test
         del Y_train
