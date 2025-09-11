@@ -1,6 +1,6 @@
 from src.graph_to_vec_converter import  HVs
 from sklearn.metrics       import accuracy_score, classification_report
-from sklearn.linear_model  import LogisticRegression
+from sklearn.linear_model  import LogisticRegression, RidgeClassifierCV, RidgeClassifier
 from sklearn.model_selection import train_test_split
 from src.graph_generation import NMNISTGraphDataset
 from src.loader import ev_loader
@@ -24,6 +24,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.svm import LinearSVC
 from sklearn.svm  import SVC
 from sklearn.model_selection import StratifiedGroupKFold
+from sklearn.kernel_approximation import RBFSampler, Nystroem
 
 
 def main(normalized_feat, num_of_graph_events):
@@ -66,6 +67,7 @@ def main(normalized_feat, num_of_graph_events):
     train_idx, test_idx = train_test_split(
         indices,
         test_size=0.2,
+        train_size=0.8, 
         random_state=42,
         shuffle=True,
         stratify=labels
@@ -102,7 +104,7 @@ def main(normalized_feat, num_of_graph_events):
                                                   nr_bin_xy_size=NR_BIN_XY_SIZE, nr_minimum_events=NR_MINIMUM_EVENTS,
                                                   nr_time_bin_size=NR_TIME_BIN_SIZE)
     
-    HV_Dimensions = [5000, 10000]
+    HV_Dimensions = [1000] #, 5000, 10000]
     print("Start For loop")
     for HV_DIMENTION in HV_Dimensions:
 
@@ -142,39 +144,118 @@ def main(normalized_feat, num_of_graph_events):
 
 
         scaler = StandardScaler()
-        X_train_100 = scaler.fit_transform(X_train_100)
-        X_test_100 = scaler.transform(X_test_100)
-        X_test_100_ = scaler.fit_transform(X_test_100)
-        X_test_50 = scaler.fit_transform(X_test_50)
-        X_test_10 = scaler.fit_transform(X_test_10)
-        print("Start Classification")
-        CS = [ 1, 3, 5]
-        for c in CS:
-            clf = SVC(kernel="rbf", C=c, gamma='scale', class_weight="balanced")
+        X_train_100_r = scaler.fit_transform(X_train_100)
+        X_test_100_r = scaler.transform(X_test_100)
+        X_test_50_r = scaler.fit_transform(X_test_50)
+        X_test_10_r = scaler.fit_transform(X_test_10)
+
+        np.savez_compressed("data/NMNIST_hv/train_100_r.npz", X=X_train_100_r, y=Y_train_100)
+        np.savez_compressed("data/NMNIST_hv/test_100_r.npz",  X=X_test_100_r,  y=Y_test_100)
+
+        print("Dtaset details")
+
+        print("train data set - ", len(X_train_100_r))
+        print("test data set - ", len(X_test_100_r))
+
+        Ms = [4096, 2048, 1024]
+        for m in Ms:
+
+            print("M = ", m)
+            rff = RBFSampler(gamma=0.001, n_components=m, random_state=0)
+            X_train_100 = rff.fit_transform(X_train_100_r)
+            X_test_100 = rff.transform(X_test_100_r)
+            X_test_50 = rff.transform(X_test_50_r)
+            X_test_10 = rff.transform(X_test_10_r)
+
+
+            print("Start Classification")
+
+            CS = [3,4, 5,6,7, 9]
+            for c in CS:
+                # clf = SVC(kernel="rbf", C=c, gamma='scale', class_weight="balanced")
+                clf = LinearSVC(C=c, class_weight='balanced', max_iter=20000)
+
+                clf.fit(X_train_100, Y_train_100)
+
+                tr_acc = f"{accuracy_score(Y_train_100, clf.predict(X_train_100)) * 100:.2f}%"
+                ts_100 = f"{accuracy_score(Y_test_100, clf.predict(X_test_100)) * 100:.2f}%"
+                ts_50 =  f"{accuracy_score(y_test_50, clf.predict(X_test_50)) * 100:.2f}%"
+                ts_10 = f"{accuracy_score(y_test_10, clf.predict(X_test_10)) * 100:.2f}%"
+
+                print(f"NMNST-LinearSVC {HV_DIMENTION}, {c}, {tr_acc}, {ts_100}, {ts_50}, {ts_10}")
+
+                del clf
+
+                clf = SVC(kernel="rbf", C=c, gamma='scale', class_weight="balanced")
+
+                clf.fit(X_train_100_r, Y_train_100)
+
+                tr_acc = f"{accuracy_score(Y_train_100, clf.predict(X_train_100_r)) * 100:.2f}%"
+                ts_100 = f"{accuracy_score(Y_test_100, clf.predict(X_test_100_r)) * 100:.2f}%"
+                ts_50 =  f"{accuracy_score(y_test_50, clf.predict(X_test_50_r)) * 100:.2f}%"
+                ts_10 = f"{accuracy_score(y_test_10, clf.predict(X_test_10_r)) * 100:.2f}%"
+
+                print(f"NMNST-SVC {HV_DIMENTION}, {c}, {tr_acc}, {ts_100}, {ts_50}, {ts_10}")
+
+                del clf
+
+
+            clf = RidgeClassifierCV()
 
             clf.fit(X_train_100, Y_train_100)
 
             tr_acc = f"{accuracy_score(Y_train_100, clf.predict(X_train_100)) * 100:.2f}%"
             ts_100 = f"{accuracy_score(Y_test_100, clf.predict(X_test_100)) * 100:.2f}%"
-            ts_100_ = f"{accuracy_score(Y_test_100, clf.predict(X_test_100_)) * 100:.2f}%"
             ts_50 =  f"{accuracy_score(y_test_50, clf.predict(X_test_50)) * 100:.2f}%"
             ts_10 = f"{accuracy_score(y_test_10, clf.predict(X_test_10)) * 100:.2f}%"
 
-            print(f"NMNST-SVC {HV_DIMENTION}, {c}, {tr_acc}, {ts_100}, {ts_100_}, {ts_50}, {ts_10}")
+            print(f"NMNST- RidgeClassifierCV {HV_DIMENTION}, {tr_acc}, {ts_100}, {ts_50}, {ts_10}")
 
             del clf
-        
-        del gvfa_model
-        del cb
-        del hvs
-        del X_train_100
-        del X_test_100
-        del X_test_50
-        del X_test_10
-        del Y_train_100
-        del Y_test_100
-        del y_test_50
-        del y_test_10
+
+            clf = RidgeClassifier()
+
+            clf.fit(X_train_100, Y_train_100)
+
+            tr_acc = f"{accuracy_score(Y_train_100, clf.predict(X_train_100)) * 100:.2f}%"
+            ts_100 = f"{accuracy_score(Y_test_100, clf.predict(X_test_100)) * 100:.2f}%"
+            ts_50 =  f"{accuracy_score(y_test_50, clf.predict(X_test_50)) * 100:.2f}%"
+            ts_10 = f"{accuracy_score(y_test_10, clf.predict(X_test_10)) * 100:.2f}%"
+
+            print(f"NMNST- RidgeClassifier {HV_DIMENTION}, {tr_acc}, {ts_100}, {ts_50}, {ts_10}")
+
+            del clf
+            
+            clf = LogisticRegression(
+                solver='saga',  # handles high-dim sparse data efficiently
+                penalty='l2',  # ridge regularisation
+                max_iter=1000,  # increase if it doesn’t converge
+                n_jobs=-1,  # parallelise over cores
+                random_state=42
+            )
+
+            clf.fit(X_train_100, Y_train_100)
+
+            tr_acc = f"{accuracy_score(Y_train_100, clf.predict(X_train_100)) * 100:.2f}%"
+            ts_100 = f"{accuracy_score(Y_test_100, clf.predict(X_test_100)) * 100:.2f}%"
+            ts_50 =  f"{accuracy_score(y_test_50, clf.predict(X_test_50)) * 100:.2f}%"
+            ts_10 = f"{accuracy_score(y_test_10, clf.predict(X_test_10)) * 100:.2f}%"
+
+            print(f"NMNST- logistic {HV_DIMENTION}, {tr_acc}, {ts_100}, {ts_50}, {ts_10}")
+
+            del clf
+
+            del gvfa_model
+            del cb
+            del hvs
+            del X_train_100
+            del X_test_100
+            del X_test_50
+            del X_test_10
+            del Y_train_100
+            del Y_test_100
+            del y_test_50
+            del y_test_10
         
 
 
