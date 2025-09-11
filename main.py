@@ -11,7 +11,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import accuracy_score
-
+import numpy as np
 
 def main():
 
@@ -77,7 +77,7 @@ def main():
                                                   nr_bin_xy_size=NR_BIN_XY_SIZE, nr_minimum_events=NR_MINIMUM_EVENTS,
                                                   nr_time_bin_size=NR_TIME_BIN_SIZE)
 
-    HV_Dimensions = [500, 1000, 5000, 7000]
+    HV_Dimensions = [1000, 5000, 7000]
     for item in HV_Dimensions:
         HV_DIMENTION = item
         gvfa_model = GraphCNN(input_dim=HV_DIMENTION, num_layers=LAYERS, delta=DELTA, graph_pooling_type="sum",
@@ -104,6 +104,10 @@ def main():
         X_train_100 = scaler.fit_transform(X_train_100)
         X_test_100 = scaler.transform(X_test_100)
 
+        np.savez_compressed("data/NMNIST_hv/train_snkth_100.npz", X=X_train_100, y=Y_train_100)
+        np.savez_compressed("data/NMNIST_hv/test_snkth_100.npz",  X=X_test_100,  y=Y_test_100)
+
+        print("HVs saved")
         for i in range(len(ds_test)):
             # print(i)
             g_50 = MNISTGraph_model_test_50.get(i)
