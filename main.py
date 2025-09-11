@@ -20,7 +20,7 @@ def main():
     print("[LOG] - parameter initialization.")
     # GRAPH parameters
     DATA_NAME = "ASLDVS"  # NCARS, NMNIST
-    DATA_PATH = "/scratch/mi23/nk8155/datasets" #"data"
+    DATA_PATH = "data"#/scratch/mi23/nk8155/datasets" #"data"
     DATASET = "full"  # full / test      size of dataset loading for training and testing
     NORMALIZE_FEAT = False
     NUM_OF_GRAPH_EVENTS = 100  # None, 10, 50, 100. etc
@@ -59,6 +59,7 @@ def main():
     ds_train, ds_test = train_test_split(ds, test_size=0.2, random_state=42, shuffle=True)
 
     
+
 
     print("[LOG] - Making class objects.")
     MNISTGraph_model_train_100 = NMNISTGraphDataset(tonic_raw_dataset=ds_train, num_of_graph_events=NUM_OF_GRAPH_EVENTS,
@@ -113,6 +114,11 @@ def main():
         X_train_100 = scaler.fit_transform(X_train_100)
         X_test_100 = scaler.fit_transform(X_test_100)
 
+        np.savez_compressed("data/NMNIST_hv/train_asldvs_100.npz", X=X_train_100, y=Y_train_100)
+        np.savez_compressed("data/NMNIST_hv/test_asldvs_100.npz",  X=X_test_100,  y=Y_test_100)
+
+
+        print("Saved dataset")
         for i in range(len(ds_test)):
             # print(i)
             g_50 = MNISTGraph_model_test_50.get(i)
@@ -123,7 +129,7 @@ def main():
             x_50, y = hvs.make_hvs(graph=g_50)
             x_10, _ = hvs.make_hvs(graph=g_10)
             del g_50
-            del x_10
+            
 
             X_test_50.append(x_50)
             X_test_10.append(x_10)
