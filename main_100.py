@@ -14,7 +14,7 @@ from sklearn.svm             import SVC
 from sklearn.pipeline        import Pipeline
 from sklearn.metrics         import accuracy_score
 from torch.utils.data import ConcatDataset
-
+import numpy as np
 
 print("[LOG] - parameter initialization.")
 # GRAPH parameters
@@ -73,7 +73,7 @@ MNISTGraph_model_test_10 = NMNISTGraphDataset(tonic_raw_dataset=test_ds, num_of_
                                             nr_bin_xy_size=NR_BIN_XY_SIZE, nr_minimum_events=NR_MINIMUM_EVENTS,
                                             nr_time_bin_size=NR_TIME_BIN_SIZE)
 
-items = [6000, 7000, 8000, 10000, 15000]
+items = [1000]
 for item in items:
     HV_DIMENTION = item
     gvfa_model = GraphCNN(input_dim=HV_DIMENTION, num_layers=LAYERS, delta=DELTA, graph_pooling_type="sum",
@@ -98,6 +98,10 @@ for item in items:
     X_train = scaler.fit_transform(X_train_)
     X_test = scaler.transform(X_test_)
 
+    np.savez_compressed("data/NMNIST_hv/train_ncars_100.npz", X=X_train, y=y_train)
+    np.savez_compressed("data/NMNIST_hv/test_ncars_100.npz",  X=X_test,  y=y_test)
+
+    print("HVs saved")
     for i in range(len(test_ds)):
         # print(i)
         g_50 = MNISTGraph_model_test_50.get(i)
