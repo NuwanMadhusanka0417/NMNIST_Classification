@@ -7,6 +7,7 @@ from sklearn.metrics import accuracy_score, classification_report
 from sklearn.linear_model import RidgeClassifier, LogisticRegression, RidgeClassifierCV
 import joblib
 from pathlib import Path
+from sklearn.model_selection import train_test_split
 
 DATASET_NAME = "NMNIST"
 
@@ -32,6 +33,16 @@ result_path = Path("Results/RBF_analysis.csv")
 
 X_train_100_org, Y_train_100_org = train["X"], train["y"]
 X_test_100_org, Y_test_100_org = test["X"],  test["y"]
+
+if DATASET_NAME == "NMNIST":
+    Xtr_full, ytr_full = X_train_100_org, Y_train_100_org.ravel() 
+
+    X_train_100_org, Xtr_drop, Y_train_100_org, ytr_drop = train_test_split(
+    Xtr_full, ytr_full,
+    train_size=0.50,          # keep 30% of training
+    stratify=ytr_full,        # preserve class balance
+    random_state=0            # reproducible
+)
 
 Y_train_100_rbf = Y_train_100_org
 Y_test_100_rbf = Y_test_100_org
