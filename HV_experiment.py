@@ -75,7 +75,7 @@ for dim in Dimentsions:
         ts_100_lsvc_rbf_list = []
 
 
-        CS = [0.0001, 0.001, 0.1, 1, 3,  5, 7, 10, 100, 1000]
+        CS = [0.0001, 0.001, 0.1, 1, 3,  5, 7, 10, 100, 1000]   #### why 0.01 is missed
 
         # print(f"\n\n\nOriginal_HV_Dimention {1000}")
         # print(f"RBF Converted Dimention {dim}")
